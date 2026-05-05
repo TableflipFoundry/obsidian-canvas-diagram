@@ -1,0 +1,7 @@
+{
+  "name": "obsidian-canvas-diagram",
+  "version": "0.1.0",
+  "description": "Generate richly-documented diagrams in an Obsidian vault. Each diagram node is backed by a full markdown file; the canvas assembles them visually with universal color conventions and human-style layout.",
+  "author": "Ty",
+  "license": "MIT"
+}
