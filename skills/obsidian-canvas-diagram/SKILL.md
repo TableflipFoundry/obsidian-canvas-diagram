@@ -136,8 +136,8 @@ Obsidian Canvas files are JSON with two top-level arrays: `nodes` and `edges`.
       "file": "nodes/login-handler.md",
       "x": 0,
       "y": 0,
-      "width": 280,
-      "height": 80,
+      "width": 320,
+      "height": 200,
       "color": "4"
     }
   ],
@@ -161,7 +161,7 @@ Obsidian Canvas files are JSON with two top-level arrays: `nodes` and `edges`.
 - `type`: always `"file"` for our use case (nodes reference markdown files).
 - `file`: path relative to vault root, e.g., `nodes/login-handler.md`.
 - `x`, `y`: top-left corner in pixels. Negative values are allowed.
-- `width`, `height`: in pixels. Default to **280 × 80** (small file-card; user clicks to expand).
+- `width`, `height`: in pixels. Default to **320 × 200** — wide and tall enough to show the first few lines of the node's plain-language paragraph directly on the canvas. User clicks the node to open the full markdown file. If a node's plain-language paragraph is unusually long and you want more visible, increase height (in 40px steps) but never width past 360px.
 - `color`: string `"1"`–`"6"` per the node-color palette below. Omit for default (no color).
 
 ### Edge fields
@@ -219,7 +219,7 @@ This is the part you're good at — reasoning about meaning. Do it thoroughly be
 
 Find the main flow — the longest or most important path through the diagram. Place those nodes in a straight line with generous spacing (at least 200px gap between adjacent backbone nodes). This is the visual spine.
 
-Default backbone spacing: **400px center-to-center horizontally** for L→R flows, **200px center-to-center vertically** for top-down flows.
+Default backbone spacing (assuming 320×200 nodes): **440px center-to-center horizontally** for L→R flows (≈120px gap between cards), **300px center-to-center vertically** for top-down flows (≈100px gap between cards). Increase if edges look cramped.
 
 ### Step 3 — Place branches
 
