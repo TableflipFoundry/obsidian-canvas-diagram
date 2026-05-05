@@ -67,25 +67,17 @@ No H1 inside the file — Obsidian renders the filename as the title.
 
 ## Installation
 
-### As a plugin (recommended)
+In Claude Code, open the plugin manager:
 
-In Claude Code:
+1. Click **Manage Plugins** (or run `/plugins` in the chat box on supported clients).
+2. Go to the **Marketplaces** tab and add:
+   ```
+   TableflipFoundry/claude-plugins
+   ```
+3. Switch to the **Plugins** tab and click **Install** on `obsidian-canvas-diagram`.
+4. Restart your editor / Claude Code session.
 
-```
-/plugin install <github-url>
-```
-
-Updates: `/plugin update obsidian-canvas-diagram`.
-
-### Manual install
-
-If you'd rather install the files directly without the plugin system:
-
-1. Copy `skills/obsidian-canvas-diagram/` to `~/.claude/skills/obsidian-canvas-diagram/`.
-2. Copy each file from `commands/` to `~/.claude/commands/`.
-3. Restart Claude Code.
-
-On Windows: `~/.claude/` is `C:\Users\<you>\.claude\`.
+Once restarted, the slash commands `/diagram-plan`, `/diagram-review`, and `/diagram-update` are available, and the skill is auto-invoked when a request matches its description.
 
 ## Diagram types supported
 
