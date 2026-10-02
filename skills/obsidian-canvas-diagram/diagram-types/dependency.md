@@ -1,17 +1,20 @@
 # Dependency / Call graph diagram
 
-**Best for:** "What calls this?" or "What does this depend on?" Code-level relationships between functions, modules, or packages.
+**Best for:** "What calls this?" or "What does this depend on?" Relationships between functions, modules or packages (usually C4 level 4).
 
 ## Conventions
 
-- **Primary node types:** `function` for individual functions, `component` for whole modules/packages.
-- **Edges:** default color for "calls" / "imports". Cyan if specifically showing data passed between them. Purple for external/third-party dependencies.
-- **Flow direction:** top-down (callers above, callees below) is the default convention for call graphs. Reverse if focusing on "what depends on X" — put X at top.
+- **Box types:** `function` for single functions, `component` for whole modules or packages.
+- **Arrows:** plain for "calls" or "imports". Cyan when showing data passed along. Purple for outside libraries or services.
 
-## Layout shape
+## Making it read top to bottom
 
-Tree-shaped if the graph is mostly hierarchical (one root, branches downward). Strict left-to-right or top-down with each level on its own row.
+Point arrows from **caller to callee**, so callers sit above what they call. For "what depends on X", do the same: the callers of X end up above it.
 
-Rarely a strict tree in real code — there are usually shared utilities called from multiple branches. Place those shared utilities at the bottom (or right edge) and let multiple edges converge on them; reserve a corridor below the main tree for these.
+Shared helpers called from many places sink to the bottom on their own, because many arrows arrive there.
 
-Cycles (mutual recursion, circular dependencies) are worth highlighting — use a return channel and consider flagging them in the diagram description as something the user may want to investigate.
+## Keep it readable
+
+- Start from one function or module and go 2–3 calls deep. Whole-codebase call graphs are unreadable.
+- Leave out standard library and trivial helpers.
+- **Circular dependencies** show up as upward arrows. They're worth pointing out: mention them in the report as something the user may want to look at.

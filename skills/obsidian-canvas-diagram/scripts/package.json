@@ -1,0 +1,10 @@
+﻿{
+  "name": "obsidian-canvas-diagram-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Layout, scoring and screenshot tools for the obsidian-canvas-diagram skill",
+  "dependencies": {
+    "elkjs": "^0.12.0",
+    "playwright-core": "^1.63.0"
+  }
+}

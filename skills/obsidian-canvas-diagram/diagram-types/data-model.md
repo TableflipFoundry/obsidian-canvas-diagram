@@ -4,14 +4,17 @@
 
 ## Conventions
 
-- **Primary node type:** `data` for every entity / table / collection.
-- **Edges:** cyan (data flow / reference). Label with the relationship cardinality when meaningful: "1:N", "N:M", "owns", "references".
-- **Flow direction:** none — data models are relational, not directional. Use a radial or grid arrangement.
+- **Box type:** `data` for every table, collection or entity.
+- **Arrows:** cyan. Label with the relationship when it helps: "has many", "belongs to", "1:N".
+- **Fields, types and constraints** go in each note's `Schema / shape` section. The canvas shows only how things relate.
 
-## Layout shape
+## Making it read top to bottom
 
-Place the most heavily-referenced entity (the "hub" — often `users` or the primary domain object) near the center. Less-connected entities sit further out. Group entities that belong to the same subsystem (e.g., billing entities together, auth entities together).
+Point arrows from the **owner to what it owns** (from the "one" side to the "many" side): `customers → orders → order lines`. The top-level things (customers, products, accounts) end up at the top, and the details they own stack below.
 
-Foreign-key edges connect entities; route them through the gaps between groups, not through entity nodes.
+For a many-to-many link table, point both owners at the link table so it sits below them.
 
-Use the `Schema / shape` section in each `data` node's markdown to list fields, types, and constraints — that's the detail layer. The canvas only shows relationships.
+## Keep it readable
+
+- Group by subsystem: one diagram per area (sales tables, user tables) if there are more than about 25 tables.
+- Leave out lookup and log tables that only one table uses, unless they matter to the story. Mention them in the owner's note.

@@ -24,20 +24,21 @@ The skill is also auto-invoked when a request matches its description, so users 
 
 ## Vault layout
 
-Diagrams are stored at the root of whatever project you're working in:
+Each project gets its own vault, a `Diagrams/` folder at the project root:
 
 ```
 <project-root>/
-  Diagrams/                  ← open this folder in Obsidian
-    auth-flow.canvas
-    payment-flow.canvas
-    nodes/
+  Diagrams/                  ← the project's vault
+    nodes/                   ← every note, shared by all diagrams
       login-handler.md
       session-store.md
-      ...
+    overview/
+      overview.canvas
+    auth/
+      auth.canvas
 ```
 
-The `Diagrams/` folder *is* the vault. No setup, no config — point Obsidian at it and the diagrams render.
+Notes are shared, so the same note can appear in several diagrams and is never duplicated. The scripts add the vault to Obsidian and open it for you.
 
 ## Conventions
 
@@ -59,11 +60,33 @@ The `Diagrams/` folder *is* the vault. No setup, no config — point Obsidian at
 ### Node markdown structure
 
 Every node file:
-1. YAML frontmatter (`id`, `title`, `type`, `status`, `source`).
-2. **Plain-language paragraph first** — readable by a layperson, no jargon.
+1. YAML frontmatter (`id`, `title`, `type`, `status`, `source`, `level`, optional `detail`).
+2. **Plain-language paragraph first**: what it is, why it exists and how it works, readable by someone who doesn't code.
 3. Technical sections appropriate to the node type.
 
-No H1 inside the file — Obsidian renders the filename as the title.
+No H1 inside the file, because Obsidian renders the filename as the title.
+
+### Detail levels
+
+`/diagram-review` asks what you want a diagram of (the whole app or one feature), then how much detail. `/diagram-plan` asks how much detail. The levels follow the C4 model:
+
+| Choice | What the diagram shows |
+|---|---|
+| Overview | The big pieces: users, programs, data, outside services |
+| Detailed | The parts inside those pieces: services, jobs, screens, tables |
+| Deep dive | Down to the important functions and steps |
+
+Each request makes **one** diagram, with as many boxes as the chosen scope and depth need.
+
+## Automatic layout
+
+The AI decides what the diagram says: notes, arrows and colors. Bundled scripts decide where everything goes:
+
+1. A layout engine (ELK) sorts the boxes into rows that follow the arrows, top to bottom.
+2. An optimizer tidies the layout inside those rows, so arrows don't overlap or run through boxes and labels stay clear. It keeps the top-to-bottom order.
+3. The scripts open the diagram **in Obsidian itself** (through its debug port), score what Obsidian actually drew, and take a screenshot. The AI reviews the screenshot and fixes the structure if needed.
+
+**Requirements:** Node.js and the Obsidian desktop app. The first run installs two small libraries (`elkjs`, `playwright-core`) into the plugin's `scripts/` folder. The scripts open Obsidian for you. If Obsidian is already open without the debug port, you'll be asked to close it once.
 
 ## Installation
 
@@ -87,7 +110,7 @@ The skill recommends a type based on the user's request and announces it before 
 
 ## Status
 
-v0.1 — initial release. Layout heuristics are unproven and will be refined as real diagrams expose what fails. Feedback welcome.
+v0.2: automatic layout and in-Obsidian review. Top-to-bottom flow only; group boxes and Advanced Canvas line styles are planned.
 
 ## License
 

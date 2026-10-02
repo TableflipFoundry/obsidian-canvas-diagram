@@ -1,19 +1,19 @@
 # Decision tree / Flowchart diagram
 
-**Best for:** "What logic does this run through?" Conditional flows, business rules, troubleshooting trees.
+**Best for:** "What logic does this run through?" Business rules, validation, troubleshooting paths.
 
 ## Conventions
 
-- **Primary node types:** `decision` for branch points, `function` for actions taken, `event` for terminal outcomes.
-- **Edges:** yellow for conditional branches (label with the condition: "yes" / "no" / specific value). Green for "success" terminal paths, red for "failure" terminal paths.
-- **Flow direction:** **top-down.** Decisions cascade downward.
+- **Box types:** `decision` for each question, `function` for actions taken, `event` for final outcomes.
+- **Arrows:** yellow for branches, labelled with the answer ("yes", "no", "over $500"). Green into a success outcome, red into a failure outcome.
 
-## Layout shape
+## Making it read top to bottom
 
-Tree-shaped: a single root at the top, branches expanding downward. Each `decision` node typically has exactly two outgoing edges (yes/no) — place children directly below, offset left and right.
+One root question at the top. Every arrow points from a question to what follows it, so the tree grows downward. Outcomes are the bottom row. Don't connect outcomes back into the tree.
 
-For decisions with more than two branches, fan the children out evenly below.
+If the same action happens under several branches (for example "log the error"), use one box and let several arrows arrive at it. Don't copy it.
 
-Terminal outcomes (green/red `event` nodes) sit at the bottom or at the leaves. Don't connect them back into the tree.
+## Keep it readable
 
-If the same action appears under multiple branches (e.g., "log error" reached from several decision paths), reuse the node — multiple edges can converge on it. Place shared terminals at the very bottom.
+- Keep branch labels to a word or two.
+- If the tree is more than about 5 questions deep, split a sub-tree into its own detail diagram.

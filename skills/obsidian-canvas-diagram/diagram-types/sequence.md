@@ -1,16 +1,20 @@
 # Sequence / Flow diagram
 
-**Best for:** "What happens when a user does X?" Ordered steps over time.
+**Best for:** "What happens when a user does X?" Steps in order over time.
 
 ## Conventions
 
-- **Primary node types:** `function` for steps, `actor` for participants, `event` for triggers, `decision` for branches.
-- **Edges:** numbered or labeled with the message/action when ordering isn't visually obvious. Use green for happy path, red for error path, yellow for conditional branches.
-- **Flow direction:** **left-to-right.** Time advances rightward.
-- **Triggering event:** start at the leftmost position, usually an `actor` or `event` node.
+- **Box types:** `event` or `actor` for what starts it, `function` for each step, `decision` for branch points, `data` for things read or saved.
+- **Arrows:** green for the normal path, red for errors, yellow for conditional branches, orange for work handed off to run later. Label an arrow only when the step's meaning isn't clear from the boxes (1–3 words).
 
-## Layout shape
+## Making it read top to bottom
 
-Strictly linear backbone for the happy path, left-to-right. Error paths branch downward (red edges); alternative branches go above or below the main line. Loops use a return channel below the backbone.
+**Time runs downward.** The trigger (user action, incoming order, timer) is the single box at the top. Each arrow goes from a step to the step after it. Error paths branch sideways and down to their own outcome boxes. Don't loop them back into the main line unless the code really retries.
 
-Don't render swimlanes (one row per actor) — Obsidian Canvas isn't great for that. Instead, label each step with which actor performs it, or color nodes by actor type.
+A retry or "go back" is an upward arrow. That's fine when it's real, but keep it to one or two per diagram.
+
+## Keep it readable
+
+- One flow per diagram. "Checkout" and "refund" are two diagrams.
+- Don't draw a lane per actor. Obsidian canvas can't do lanes well. Say who does each step in the note, or color by actor type.
+- If a step has its own complicated insides, give it a detail diagram rather than growing this one.

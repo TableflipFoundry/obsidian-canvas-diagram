@@ -4,16 +4,16 @@
 
 ## Conventions
 
-- **Primary node type:** treat each state as a `component` node (states are "things the system is being," which is closest to component). The starting state can be marked by an incoming edge from a small `event` node labeled "start."
-- **Edges:** label edges with the *trigger* that causes the transition (e.g., "user pays", "timeout", "admin approves"). Use yellow for conditional transitions, red for failure transitions, green for normal ones.
-- **Flow direction:** radial or loose — state machines often have non-linear topologies.
+- **Box types:** `component` for each state (a state is something the system *is being*). A small `event` box labelled like "created" marks where it starts.
+- **Arrows:** label each one with what causes the change ("customer pays", "30 days pass", "manager approves"). Green for the normal progression, yellow for conditional moves, red for failure states.
 
-## Layout shape
+## Making it read top to bottom
 
-If states form a linear progression with occasional backtracks, use left-to-right with return channels for backward transitions.
+Start at the top with the `event` box that creates the thing. Normal progress points **down**: created → pending → paid → shipped → closed. Moves backwards (reopen, retry, back to draft) are upward arrows. That's correct for a state machine, so keep them, but make sure they're real transitions in the code.
 
-If states form a cycle (e.g., draft → review → approved → published → archived → draft), arrange in a rough circle/ring with edges around the perimeter.
+Put end states (closed, cancelled, expired) at the bottom by making sure nothing leaves them.
 
-If multiple states can transition to many others (mesh), spread states evenly and route edges through the gaps between them. This is the hardest case; expect to spend extra effort on edge routing.
+## Keep it readable
 
-Self-transitions (a state looping to itself, e.g., "retry") use a small curl off one side of the node.
+- A state that can jump to almost every other state (like "cancelled from anywhere") makes a mess of arrows. Draw one arrow from the most important state and say "can happen from any state" in the note.
+- A state that repeats itself (retry) is an arrow from the box to itself. Only draw it if it matters.
