@@ -232,6 +232,7 @@ A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).
 - `x`, `y`: **put 0 for all of them.** The pipeline places them.
 - `width` × `height`: **320 × 200** (shows the first lines of the note). For a note whose opening paragraph matters a lot, you may use a taller height in 40px steps. Never go wider than 360.
 - `color`: by note type (palette below).
+- `styleAttributes`: `{ "border": "dashed" }` for planned parts, `{ "border": "dotted" }` for broken or unused ones (see "Line styles and borders").
 
 **Arrows**
 
@@ -240,6 +241,7 @@ A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).
 - **Replies and callbacks point back up.** They are fine, but keep them rare. If most arrows go both ways, draw only the direction that tells the story.
 - **Watch out for two-way pairs between main pieces.** An arrow each way between two big boxes (screens → server "requests", server → screens "live updates") forms a loop. The layout may break the loop the wrong way and put the server *above* the screens. At Overview level, draw only the main direction and describe the other in the notes.
 - `color`: by meaning (palette below). Leave it out for a plain "calls" / "connects to".
+- `styleAttributes`: line style for *when* it happens (see "Line styles and borders"). Leave it out for "right away".
 - `label`: optional. **Keep labels short (1–3 words).** Labels take real space on the canvas. Prefer color; add a label only when the arrow's meaning isn't obvious.
 - **Don't draw every connection.** Draw the ones that explain how the system works. A box with more than about 6 arrows is a sign the diagram needs simplifying. **One exception:** in an Overview of a system built around one central server, that server is naturally the hub, with an arrow to each database and outside service. That's accepted at Overview level.
 
@@ -271,6 +273,56 @@ Group nodes (`"type": "group"`) are **not supported yet**. Don't use them; show 
 | `event` | `"1"` (red) |
 
 Don't invent per-diagram color meanings.
+
+## Line styles and borders (Advanced Canvas)
+
+Diagrams require the Obsidian community plugin **Advanced Canvas**. It adds dashed and dotted lines, arrowhead styles and box borders. The scripts check the project's vault and, if it's missing, install the unmodified copy **bundled with this plugin** (`vendor/advanced-canvas`) and turn it on. There's no download, and the scripts never look in other vaults or folders. You don't need to do anything to set it up.
+
+**Color says *what kind* of connection it is. Line style says *when* it happens.** Use both.
+
+### How to write a style
+
+Add a `styleAttributes` object to the arrow or box in the `.canvas` JSON. Leave it out for the default.
+
+```json
+{ "id": "e7", "fromNode": "n2", "toNode": "n5", "label": "price update", "color": "2",
+  "styleAttributes": { "path": "long-dashed" } }
+
+{ "id": "n9", "type": "file", "file": "nodes/new-report-screen.md", "x": 0, "y": 0, "width": 320, "height": 200, "color": "5",
+  "styleAttributes": { "border": "dashed" } }
+```
+
+### Arrow line (`path`): when it happens
+
+| Value | Meaning | Example |
+|---|---|---|
+| (leave out): solid | Happens right away; the caller waits for it | screen asks the server for a product |
+| `long-dashed` | Handed off to happen **later**: queued, background, after a delay, an event someone reacts to | sale saved, then stock pushed to eBay by the queue |
+| `dotted` | **Repeats on a timer**: scheduled jobs, polling | price timer fetches gold prices every hour |
+| `short-dashed` | **Planned**: not built yet | a connection in a `/diagram-plan` design |
+
+### Arrowhead (`arrow`)
+
+| Value | Meaning |
+|---|---|
+| (leave out): triangle | Normal "calls / sends / leads to" |
+| `diamond` | **Is part of / owns** (mainly data models: an order owns its lines) |
+
+Don't use the other arrowhead styles.
+
+### Box border (`border`)
+
+| Value | Meaning |
+|---|---|
+| (leave out): solid | Exists and works |
+| `dashed` | **Planned**, not built yet. Required on every note with `status: planned`. |
+| `dotted` | **Broken or unused** code that still exists (a button that does nothing, a file nothing calls). Its note and the issues note explain why. |
+
+### Not allowed
+
+- `pathfindingMethod` (Advanced Canvas's arrow routing): it changes arrow shapes, which the layout is tuned against. The pipeline removes it.
+- `shape` and `textAlign`: they only work on text boxes, and every box here is a note.
+- `border: "invisible"` and any value not listed above. The pipeline and the stop check reject unknown values.
 
 ## Layout and review
 
@@ -312,6 +364,7 @@ Check, in this order:
 1. **Flow: does it read top to bottom as a story?** The starting point (user, trigger) is at the top. Each row happens "after" the row above. **This matters more than anything else.** A tidy diagram with no order has failed.
 2. **Can every arrow be followed** from start to end, without running on top of another arrow or through a box? (score: `edges on top of each other`, `edges through a box`)
 3. **Are labels readable** and clear of boxes and other labels? (score: `labels on a box`, `labels on labels`, `labels sitting on another edge`)
+3b. **Line styles tell the timing:** delayed and background steps are long-dashed, timers are dotted, planned parts are dashed, and broken parts have a dotted border.
 4. **Upward arrows:** the score lists them. Each one should be a real reply or callback. If not, the arrow is probably drawn backwards.
 5. **Starting points not in the top row:** the score lists them. Usually an arrow is pointing the wrong way, or the start is missing its outgoing arrow.
 6. **Right level:** every box belongs at the chosen depth. Nothing important is missing, and nothing from a deeper level crept in.

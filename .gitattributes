@@ -1,0 +1,2 @@
+# Bundled third-party files must stay byte-for-byte identical (their SHA-256 is checked before install).
+vendor/** -text

@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readJob, writeJob, markerPath, fileHash } from './lib/job.mjs';
+import { styleProblems } from './lib/styles.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SECTIONS = {
@@ -59,6 +60,16 @@ export function runChecks(vault, job) {
   let canvas = null;
   try { canvas = JSON.parse(fs.readFileSync(canvasFile, 'utf8').replace(/^﻿/, '')); }
   catch { fail('canvas', `The diagram ${job.canvas} doesn't exist or isn't valid JSON yet. Write it (SKILL.md, "The .canvas file").`); return { failures, canvas: null }; }
+
+  for (const p of styleProblems(canvas)) fail(`style:${p.owner}`, `${p.msg}. See SKILL.md, "Line styles and borders (Advanced Canvas)".`);
+  // planned parts must look planned
+  for (const n of (canvas.nodes ?? []).filter(n => n.type === 'file')) {
+    const p = path.join(vault, n.file ?? '');
+    if (!fs.existsSync(p) || !p.endsWith('.md')) continue;
+    const { fm } = parseNote(fs.readFileSync(p, 'utf8'));
+    if (fm.status === 'planned' && n.styleAttributes?.border !== 'dashed')
+      fail(`style:planned:${n.file}`, `${n.file} is planned (not built yet), so its box needs a dashed border: add "styleAttributes": { "border": "dashed" } to box ${n.id}.`);
+  }
 
   if (!job.notesIndexAt) fail('reuse-check', `The reuse check hasn't run. Run: node "${path.join(here, 'notes-index.mjs')}" "${vault}" and reuse matching notes before writing new ones.`);
 

@@ -8,6 +8,8 @@ import { chromium } from 'playwright-core';
 import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 export const PORT = +(process.env.OBSIDIAN_DEBUG_PORT || 9222);
 const ENDPOINT = `http://127.0.0.1:${PORT}`;
@@ -108,7 +110,53 @@ export async function connect(vaultRoot) {
   }
   if (!page) throw new Error(`Could not find an Obsidian window for vault ${vaultRoot}`);
   await page.waitForFunction(() => globalThis.app?.workspace?.layoutReady === true, null, { timeout: 20000 });
+  await ensureAdvancedCanvas(page, vaultRoot);
   return { browser, page };
+}
+
+// ---------- Advanced Canvas (required) ----------
+// Diagrams use Advanced Canvas line styles and borders, so every vault needs it
+// installed and turned on. If this vault doesn't have it, we install the
+// unmodified copy bundled with this plugin (vendor/advanced-canvas, GPL-3.0,
+// see its README). We only ever touch the project's own vault: no downloads,
+// and no looking in other vaults or folders.
+const AC_ID = 'advanced-canvas';
+const AC_BUNDLE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../vendor/advanced-canvas');
+const AC_SHA256 = {
+  'main.js': 'fa672aac80561875e01c12e593d661a976d2eb1ada93202efb57029d415482c8',
+  'manifest.json': '0f5a79f0964004cccb261942f477f693ebd3b8f969d77940d699388d1bb7a82e',
+  'styles.css': '3646804b9160e5542b7fc9fec19392e82917c118d110f9a8d88ddb938923922c',
+};
+
+function installAdvancedCanvasFiles(vaultRoot) {
+  const dest = path.join(vaultRoot, '.obsidian', 'plugins', AC_ID);
+  if (['main.js', 'manifest.json'].every(f => fs.existsSync(path.join(dest, f)))) return 'already in this vault';
+  for (const [f, want] of Object.entries(AC_SHA256)) {
+    const src = path.join(AC_BUNDLE, f);
+    if (!fs.existsSync(src)) throw new Error(`the plugin's bundled Advanced Canvas is missing ${f} (${AC_BUNDLE}). Reinstall the plugin.`);
+    const got = crypto.createHash('sha256').update(fs.readFileSync(src)).digest('hex');
+    if (got !== want) throw new Error(`the plugin's bundled Advanced Canvas file ${f} doesn't match its checksum. Reinstall the plugin.`);
+  }
+  fs.mkdirSync(dest, { recursive: true });
+  for (const f of Object.keys(AC_SHA256)) fs.copyFileSync(path.join(AC_BUNDLE, f), path.join(dest, f));
+  return 'installed from the copy bundled with this plugin';
+}
+
+export async function ensureAdvancedCanvas(page, vaultRoot) {
+  const enabled = await page.evaluate((id) => app.plugins.enabledPlugins?.has(id) && !!app.plugins.plugins?.[id], AC_ID).catch(() => false);
+  if (enabled) return;
+  const how = installAdvancedCanvasFiles(vaultRoot);
+  const result = await page.evaluate(async (id) => {
+    try {
+      await app.plugins.loadManifests();
+      // community plugins are off ("restricted mode") in a new vault
+      if (typeof app.plugins.isEnabled === 'function' && !app.plugins.isEnabled()) await app.plugins.setEnable(true);
+      await app.plugins.enablePluginAndSave(id);
+      return app.plugins.enabledPlugins.has(id) ? 'ok' : 'not enabled';
+    } catch (e) { return String(e); }
+  }, AC_ID);
+  if (result !== 'ok') throw new Error(`Advanced Canvas is required but could not be turned on (${result}). Ask the user to enable it: Obsidian Settings → Community plugins → Advanced Canvas.`);
+  console.error(`[obsidian] Installed and enabled Advanced Canvas in ${vaultRoot} (${how}).`);
 }
 
 /** Opens a canvas (path relative to the vault) in the active tab and zooms to fit. */

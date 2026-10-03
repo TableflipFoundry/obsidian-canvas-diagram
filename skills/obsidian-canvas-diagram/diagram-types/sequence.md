@@ -5,7 +5,7 @@
 ## Conventions
 
 - **Box types:** `event` or `actor` for what starts it, `function` for each step, `decision` for branch points, `data` for things read or saved.
-- **Arrows:** green for the normal path, red for errors, yellow for conditional branches, orange for work handed off to run later. Label an arrow only when the step's meaning isn't clear from the boxes (1–3 words).
+- **Arrows:** green for the normal path, red for errors, yellow for conditional branches, orange for work handed off to run later. Steps that happen later (queued, after a delay) also get a long-dashed line; steps that repeat on a timer get a dotted line (SKILL.md, "Line styles and borders"). Label an arrow only when the step's meaning isn't clear from the boxes (1–3 words).
 
 ## Making it read top to bottom
 

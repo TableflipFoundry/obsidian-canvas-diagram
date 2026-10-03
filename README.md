@@ -86,6 +86,8 @@ The AI decides what the diagram says: notes, arrows and colors. Bundled scripts 
 2. An optimizer tidies the layout inside those rows, so arrows don't overlap or run through boxes and labels stay clear. It keeps the top-to-bottom order.
 3. The scripts open the diagram **in Obsidian itself** (through its debug port), score what Obsidian actually drew, and take a screenshot. The AI reviews the screenshot and fixes the structure if needed.
 
+**Line styles:** diagrams use the Obsidian community plugin **Advanced Canvas** (required). An unmodified copy of version 7.1.0 is bundled in `vendor/advanced-canvas/` (GPL-3.0; license and source link included). The scripts install it from there into a project's vault when needed and enable it. They never download it at diagram time, and they never look in other vaults or folders. Line style shows *when* something happens: solid for right away, long dashes for later or queued, dots for a timer, short dashes for planned. A dashed box border means planned and a dotted one means broken or unused.
+
 **Requirements:** Node.js and the Obsidian desktop app. The first run installs two small libraries (`elkjs`, `playwright-core`) into the plugin's `scripts/` folder. The scripts open Obsidian for you. If Obsidian is already open without the debug port, you'll be asked to close it once.
 
 ## Installation
@@ -110,7 +112,7 @@ The skill recommends a type based on the user's request and announces it before 
 
 ## Status
 
-v0.2: automatic layout and in-Obsidian review. Top-to-bottom flow only; group boxes and Advanced Canvas line styles are planned.
+v0.3: Advanced Canvas line styles and borders (required, auto-installed). v0.2: automatic layout, in-Obsidian review, issues notes, stop check. Top-to-bottom flow only; group boxes are planned.
 
 ## License
 

@@ -8,7 +8,7 @@ What they described (may be empty): $ARGUMENTS
 
 ## Rules for this mode
 
-- Most notes have `status: planned` and no `source`.
+- Most notes have `status: planned` and no `source`. **Planned boxes get a dashed border** and new connections a short-dashed line (SKILL.md, "Line styles and borders"), so the diagram shows at a glance what's new and what already exists.
 - If the plan uses parts that already exist in this codebase, reuse their notes from `Diagrams/nodes/` (or write them with `status: exists`), so the plan shows what's new and what's already there.
 
 ## 1. Ask how much detail

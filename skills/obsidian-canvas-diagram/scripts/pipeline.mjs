@@ -32,6 +32,14 @@ const ids = new Set((canvas.nodes ?? []).map(n => n.id));
 const bad = (canvas.edges ?? []).filter(e => !ids.has(e.fromNode) || !ids.has(e.toNode));
 if (bad.length) { console.error('INVALID: edges point at missing nodes: ' + bad.map(e => e.id).join(', ')); process.exit(4); }
 if ((canvas.nodes ?? []).some(n => n.type === 'group')) console.warn('WARNING: group nodes are not laid out yet; they keep their old position.');
+// Advanced Canvas styles: stop on typos; drop arrow routing (it changes edge shapes).
+const { styleProblems } = await import('./lib/styles.mjs');
+for (const e of canvas.edges ?? []) if (e.styleAttributes?.pathfindingMethod) {
+  delete e.styleAttributes.pathfindingMethod;
+  console.warn(`WARNING: removed pathfindingMethod from arrow ${e.id} (not allowed; the layout uses normal curves).`);
+}
+const badStyles = styleProblems(canvas);
+if (badStyles.length) { console.error('INVALID styles:\n' + badStyles.map(p => '  ' + p.msg).join('\n')); process.exit(4); }
 // Every box's note must exist inside the vault, or Obsidian shows "file not found" boxes.
 const { findVaultRoot } = await import('./lib/obsidian.mjs'); // after the setup check (it needs playwright)
 const vaultRoot = findVaultRoot(abs);
