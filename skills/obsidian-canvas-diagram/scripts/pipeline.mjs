@@ -29,7 +29,7 @@ if (!fs.existsSync(path.join(here, 'node_modules', 'elkjs')) || !fs.existsSync(p
 const abs = path.resolve(canvasFile);
 const canvas = JSON.parse(fs.readFileSync(abs, 'utf8').replace(/^\uFEFF/, ''));
 // The legend panel is generated: drop any old one, a fresh one is added after layout.
-const { legendProblems, buildLegend, isLegendItem } = await import('./lib/legend.mjs');
+const { legendProblems, buildLegend, isLegendItem, noteType } = await import('./lib/legend.mjs');
 canvas.nodes = (canvas.nodes ?? []).filter(n => !isLegendItem(n));
 canvas.edges = (canvas.edges ?? []).filter(e => !isLegendItem(e));
 const ids = new Set((canvas.nodes ?? []).map(n => n.id));
@@ -68,6 +68,9 @@ const flowCanvas = {
   nodes: (canvas.nodes ?? []).filter(n => !sideIds.has(n.id)),
   edges: (canvas.edges ?? []).filter(e => !sideIds.has(e.fromNode) && !sideIds.has(e.toNode)),
 };
+// Data boxes (note type "data") are placed beside the step that uses them, not
+// as a step of their own. The flag is for layout.mjs/optimize.mjs only.
+for (const n of flowCanvas.nodes) if (n.type === 'file' && noteType(vaultRoot, n.file ?? '') === 'data') n._data = true;
 const nodeCount = flowCanvas.nodes.filter(n => n.type !== 'group').length;
 
 const run = (script, argv) => new Promise((resolve, reject) => {
@@ -102,6 +105,7 @@ const best = results[0];
 
 // Keep everything from the original file except geometry.
 const laid = JSON.parse(fs.readFileSync(best.out, 'utf8').replace(/^\uFEFF/, ''));
+for (const n of laid.nodes) delete n._data;
 {
   // Side column to the right of the diagram, from its top: the issues box(es),
   // then the generated legend panel.

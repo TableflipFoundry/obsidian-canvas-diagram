@@ -49,7 +49,8 @@ const FORBIDDEN = { edge: ['pathfindingMethod'], node: ['shape', 'textAlign'] };
 
 export const isLegendItem = x => typeof x?.id === 'string' && x.id.startsWith('legend-');
 
-function noteType(vault, file) {
+/** The `type` in a note's frontmatter, or null. */
+export function noteType(vault, file) {
   try {
     const t = fs.readFileSync(path.join(vault, file), 'utf8').replace(/^﻿/, '');
     const m = t.match(/^---\r?\n([\s\S]*?)\r?\n---/);

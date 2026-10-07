@@ -37,7 +37,28 @@ const EF = edges.map(e => idx.get(e.fromNode)), ET = edges.map(e => idx.get(e.to
 // Flow: edges that point down in the input (ELK's layering) should keep pointing down.
 // ELK already chose which few edges run backwards to break cycles; those are exempt.
 const cy0 = i => nodes[i].y + nodes[i].height / 2;
-const FLOWS_DOWN = edges.map((_, k) => cy0(ET[k]) - cy0(EF[k]) > 20);
+// Data boxes (flagged `_data` by pipeline.mjs) aren't steps: an arrow to or
+// from one never decides the row order, and the box belongs in the row of the
+// step it touches, with a flat arrow (see layout.mjs).
+const DATA = nodes.map(n => n._data === true);
+const DATA_EDGE = edges.map((_, k) => DATA[EF[k]] || DATA[ET[k]]);
+const FLOWS_DOWN = edges.map((_, k) => !DATA_EDGE[k] && cy0(ET[k]) - cy0(EF[k]) > 20);
+// The steps each data box is joined to (for keeping it in one of their rows).
+const DATA_STEPS = nodes.map((_, d) => DATA[d]
+  ? [...new Set(edges.flatMap((_, k) => EF[k] === d ? [ET[k]] : ET[k] === d ? [EF[k]] : []).filter(s => !DATA[s]))]
+  : []);
+// Order constraints: downward step arrows, plus pass-through pairs A -> B for
+// A -> data -> B (layout.mjs kept B below A; the optimizer must keep it too,
+// or a worker fed by a queue can float above the step that fills the queue).
+const ORDER = [];
+edges.forEach((_, k) => { if (FLOWS_DOWN[k] && EF[k] !== ET[k]) ORDER.push([EF[k], ET[k]]); });
+nodes.forEach((_, d) => {
+  if (!DATA[d]) return;
+  const ins = edges.map((_, k) => k).filter(k => ET[k] === d && !DATA[EF[k]]);
+  const outs = edges.map((_, k) => k).filter(k => EF[k] === d && !DATA[ET[k]]);
+  for (const a of ins) for (const b of outs)
+    if (EF[a] !== ET[b] && cy0(ET[b]) - cy0(EF[a]) > 20) ORDER.push([EF[a], ET[b]]);
+});
 // Simple chain link: the only arrow out of one box and the only arrow into the
 // next. These read best stacked in a straight column.
 const outDeg = new Array(nodes.length).fill(0), inDeg = new Array(nodes.length).fill(0);
@@ -73,10 +94,9 @@ const rowMembers = r => nodes.map((_, i) => i).filter(i => RANK[i] === r);
 // box that feeds it (along downward arrows) and above every box it feeds.
 function legalRows(i) {
   let lo = 0, hi = rows - 1;
-  for (let k = 0; k < edges.length; k++) {
-    if (!FLOWS_DOWN[k] || EF[k] === ET[k]) continue;
-    if (ET[k] === i) lo = Math.max(lo, RANK[EF[k]] + 1);
-    if (EF[k] === i) hi = Math.min(hi, RANK[ET[k]] - 1);
+  for (const [a, b] of ORDER) {
+    if (b === i) lo = Math.max(lo, RANK[a] + 1);
+    if (a === i) hi = Math.min(hi, RANK[b] - 1);
   }
   return [lo, hi];
 }
@@ -213,6 +233,15 @@ function evaluate(detail = false) {
     const [nf, nt] = naturalSides(a, b);
     if (FS[k] !== nf) soft += 12;
     if (TS[k] !== nt) soft += 12;
+  }
+  // A data box away from its step's row looks like a next step. Each row of
+  // distance to each of its steps costs about three crossings, and sitting in
+  // no step's row at all (possible when its steps are rows apart) costs six more.
+  for (let d = 0; d < nodes.length; d++) {
+    if (!DATA_STEPS[d].length) continue;
+    let sum = 0, min = Infinity;
+    for (const s of DATA_STEPS[d]) { const dr = Math.abs(RANK[d] - RANK[s]); sum += dr; if (dr < min) min = dr; }
+    soft += sum * 60 + (min > 0 ? 120 : 0);
   }
   const score = Object.keys(W).reduce((s, k) => s + W[k] * counts[k], 0) + 8 * counts.backFlow + 4 * counts.sideAway;
   // compactness: total edge length and bounding box

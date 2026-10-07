@@ -2,11 +2,13 @@
 // Opens the canvas in Obsidian (debug port), samples every edge along the curve
 // Obsidian actually drew, and reports readability problems. 0 = clean.
 import { connect, findVaultRoot, openCanvas, relToVault } from './lib/obsidian.mjs';
+import { noteType } from './lib/legend.mjs';
 
 const [canvasFile, flag] = process.argv.slice(2);
 if (!canvasFile) { console.error('usage: node score.mjs <diagram.canvas> [--json]'); process.exit(2); }
-const canvasPath = relToVault(findVaultRoot(canvasFile), canvasFile);
-const { browser, page } = await connect(findVaultRoot(canvasFile));
+const vaultRoot = findVaultRoot(canvasFile);
+const canvasPath = relToVault(vaultRoot, canvasFile);
+const { browser, page } = await connect(vaultRoot);
 await openCanvas(page, canvasPath);
 
 const geo = await page.evaluate(async () => {
@@ -17,7 +19,7 @@ const geo = await page.evaluate(async () => {
   // The generated legend panel (ids "legend-…") isn't part of the diagram's flow.
   const isLegend = id => String(id).startsWith('legend-');
   const nodes = [...canvas.nodes.values()].filter(n => !isLegend(n.id)).map(n => ({
-    id: n.id, x: n.x, y: n.y, w: n.width, h: n.height,
+    id: n.id, x: n.x, y: n.y, w: n.width, h: n.height, file: n.file?.path ?? null,
     name: n.file ? n.file.basename : (n.label ?? n.text ?? n.id), group: n.getData().type === 'group',
   }));
   const edges = [...canvas.edges.values()].filter(e => !isLegend(e.id)).map(e => {
@@ -38,7 +40,16 @@ const geo = await page.evaluate(async () => {
     }
     return { id: e.id, from: e.from.node.id, to: e.to.node.id, text: e.label || '', pts, label };
   });
-  return { nodes, edges, missingNotes };
+  // Arrow drawings that aren't attached to their boxes: leftovers Obsidian kept
+  // after a reload, or an arrow drawn where its box used to be.
+  const live = new Set([...canvas.edges.values()].map(e => e.path?.display));
+  const loose = [...canvas.wrapperEl.querySelectorAll('path.canvas-display-path')].filter(p => !live.has(p)).length;
+  const near = (q, n) => q.x > n.x - 30 && q.x < n.x + n.width + 30 && q.y > n.y - 30 && q.y < n.y + n.height + 30;
+  const detached = [...canvas.edges.values()].filter(e => {
+    const p = e.path?.display; if (!p) return true;
+    return !near(p.getPointAtLength(0), e.from.node) || !near(p.getPointAtLength(p.getTotalLength()), e.to.node);
+  }).map(e => e.id);
+  return { nodes, edges, missingNotes, loose, detached };
 });
 await browser.close(); // disconnects only; Obsidian stays open
 
@@ -110,16 +121,31 @@ for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++)
 // 5. flow (diagrams read top to bottom)
 issues.upward = []; issues.startNotAtTop = []; issues.tooBig = [];
 issues.missingNote = geo.missingNotes.map(f => ({ file: f }));
+issues.looseArrow = [
+  ...geo.detached.map(id => ({ edge: id, problem: 'drawn away from its boxes' })),
+  ...(geo.loose ? [{ edge: `${geo.loose} drawing(s)`, problem: 'not attached to any arrow' }] : []),
+];
 const cy = n => n.y + n.h / 2;
+// Data boxes (note type "data") aren't steps: they sit beside the step that
+// reads or writes them, so their arrows are flat and they are never "starts".
+const isData = n => n.file != null && noteType(vaultRoot, n.file) === 'data';
+const dataEdge = e => isData(byId.get(e.from)) || isData(byId.get(e.to));
 for (const e of E) {
   const a = byId.get(e.from), b = byId.get(e.to);
-  if (cy(b) < cy(a) - 20) issues.upward.push({ edge: name(e) });
+  if (!dataEdge(e) && cy(b) < cy(a) - 20) issues.upward.push({ edge: name(e) });
 }
 const topY = Math.min(...boxes.map(b => b.y));
 const incoming = new Set(E.map(e => e.to)), outgoing = new Set(E.map(e => e.from));
 for (const b of boxes) {
   // a starting point: arrows leave it, none arrive. It should sit in the top row.
-  if (outgoing.has(b.id) && !incoming.has(b.id) && b.y > topY + 40) issues.startNotAtTop.push({ node: b.name });
+  if (!isData(b) && outgoing.has(b.id) && !incoming.has(b.id) && b.y > topY + 40) issues.startNotAtTop.push({ node: b.name });
+}
+issues.dataNotBeside = [];
+for (const b of boxes) {
+  if (!isData(b)) continue;
+  const steps = E.filter(e => e.from === b.id || e.to === b.id).map(e => byId.get(e.from === b.id ? e.to : e.from)).filter(n => n && !isData(n));
+  if (steps.length && !steps.some(s => Math.abs(cy(s) - cy(b)) < Math.max(s.h, b.h) / 2))
+    issues.dataNotBeside.push({ node: b.name, steps: steps.map(s => s.name).join(', ') });
 }
 // (no size check: a diagram has as many boxes as its scope and depth need)
 
@@ -127,7 +153,7 @@ for (const b of boxes) {
 // Upward arrows are normal when that's the way data or a request travels, so
 // they're listed for a direction double-check but cost nothing.
 const W = { throughNode: 10, overlap: 10, labelOnNode: 6, labelOnLabel: 6, labelOnEdge: 4, crossing: 1,
-  upward: 0, startNotAtTop: 5, tooBig: 20, missingNote: 50 };
+  upward: 0, startNotAtTop: 5, dataNotBeside: 3, tooBig: 20, missingNote: 50, looseArrow: 50 };
 const score = Object.entries(W).reduce((s, [k, w]) => s + w * issues[k].length, 0);
 
 if (flag === '--json') { console.log(JSON.stringify({ score, issues })); process.exit(0); }
@@ -136,7 +162,9 @@ const titles = {
   overlap: 'edges on top of each other', throughNode: 'edges through a box', labelOnNode: 'labels on a box',
   labelOnLabel: 'labels on labels', labelOnEdge: 'labels sitting on another edge', crossing: 'edge crossings',
   upward: 'arrows pointing upward (fine if that is the way the thing travels; double-check the direction)', startNotAtTop: 'starting points not in the top row',
+  dataNotBeside: 'data boxes not in the row of a step that uses them (they read as a next step)',
   missingNote: 'boxes whose note Obsidian cannot find (shows as a file path, not the note)',
+  looseArrow: 'arrows not connected to their boxes on screen (close and reopen the canvas in Obsidian, then score again)',
 };
 for (const k of Object.keys(titles)) {
   console.log(`  ${titles[k]}: ${issues[k].length}`);

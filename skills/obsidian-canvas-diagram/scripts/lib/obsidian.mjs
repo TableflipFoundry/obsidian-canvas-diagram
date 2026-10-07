@@ -166,7 +166,12 @@ export async function openCanvas(page, relPath) {
     for (let i = 0; i < 20 && !app.vault.getAbstractFileByPath(p); i++) await new Promise(r => setTimeout(r, 250));
     const file = app.vault.getAbstractFileByPath(p);
     if (!file) return { error: `not found in vault: ${p}` };
-    const leaf = app.workspace.getLeaf(false);
+    // Open it fresh. If a tab already shows this canvas, Obsidian reloads the
+    // rewritten file in place and can leave old arrow drawings behind, not
+    // connected to anything. So empty that tab first, then open the file in it.
+    const leaf = app.workspace.getLeavesOfType('canvas').find(l => l.view?.file?.path === p) ?? app.workspace.getLeaf(false);
+    if (leaf.view?.file?.path === p) await leaf.setViewState({ type: 'empty' });
+    app.workspace.setActiveLeaf(leaf, { focus: true });
     await leaf.openFile(file);
     await new Promise(r => setTimeout(r, 700));
     const canvas = leaf.view?.canvas;

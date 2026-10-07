@@ -15,7 +15,7 @@ Every arrow starts where the thing comes from and ends where it goes (SKILL.md, 
 - **Requests** go from who asks to who does it: person → screen → server → service.
 - **Data** goes from where it lives to who receives it: `settings-file → price-engine` when the engine reads settings, `price-engine → products-table` when it saves prices.
 
-The layout follows the arrows, so a data store that only feeds others may sit high on the page. That's correct; don't flip arrows to push stores to the bottom.
+The layout puts each `data` box beside the step that reads or writes it, with a flat arrow, so direction never changes where a store sits. Don't flip arrows for looks.
 
 Draw a reply only when it tells the reader something ("callback", "webhook"). A normal request and its answer need just the request arrow.
 

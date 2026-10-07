@@ -241,7 +241,8 @@ A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).
   - **Data** goes from where it lives to whoever receives it. When the price engine *reads* the settings, the arrow is `settings-file → price-engine`. When it *saves* prices, it's `price-engine → products-table`. Something that reads and writes gets the arrow for what matters to the story; if both matter, two arrows.
   - **Requests and actions** go from whoever starts them to whoever carries them out: `shop-staff → sales-screen`, `price-timer → price-fetcher`.
   - Never point an arrow at a data store just because the code "uses" it. Ask what actually travels, and which way.
-- **Arrows may point up.** Position doesn't decide direction. The layout follows the arrows, so a data source may end up higher on the page than the thing that reads it. That's fine. Don't flip an arrow to make the picture flow downward.
+- **Arrows may point up.** Position doesn't decide direction. Don't flip an arrow to make the picture flow downward.
+- **Data boxes aren't steps.** The layout puts a `data` box (file, table, queue) in the same row as the step that reads or writes it, with a flat arrow. Only arrows between steps decide the top-to-bottom order. So `settings-file → publishing-step` draws as a short sideways arrow, not as "settings, then publishing".
 - A diagram's starting point (a user, a trigger, an incoming event) has arrows going *out* and none coming *in*.
 - **Watch out for two-way pairs between main pieces.** An arrow each way between two big boxes (screens → server "requests", server → screens "live updates") forms a loop. The layout may break the loop the wrong way and put the server *above* the screens. At Overview level, draw only the main direction and describe the other in the notes.
 - `color`: `"5"` data, `"6"` outside service, `"1"` error, or leave it out for a plain call (see "The legend").
@@ -351,7 +352,7 @@ node "<scripts>/pipeline.mjs" "<path/to/diagram.canvas>"
 It takes about 1–5 minutes, depending on size. Give the command a long timeout (10 minutes). It:
 
 1. checks the canvas (every arrow must point at a real box),
-2. uses a layout engine to put the boxes in rows, top to bottom, following the arrows,
+2. uses a layout engine to put the steps in rows, top to bottom, following the arrows between them; `data` boxes go beside the step that uses them,
 3. tidies the layout within those rows, 3 attempts in parallel, and keeps the best,
 4. rewrites the canvas **in place**, changing only positions and arrow sides,
 5. opens the project's vault in Obsidian, scores what Obsidian actually drew, and saves a screenshot. The last line of output is `SCREENSHOT <path>`.
@@ -369,6 +370,7 @@ Check, in this order:
 3b. **Line styles tell the timing:** delayed and background steps are long-dashed, timers are dotted, planned parts are dashed, and broken parts have a dotted border.
 4. **Arrow directions:** for every arrow, ask "does this thing really travel from the start box to the end box?" Data from where it lives to who receives it; requests from who asks to who does it. The score lists upward arrows. They're fine when that's the true direction, but they're a good place to double-check.
 5. **Starting points not in the top row:** the score lists them. Usually an arrow is pointing the wrong way, or the start is missing its outgoing arrow.
+5b. **Data boxes beside their step:** a yellow box in a row of its own reads as "the next step". The score lists `data boxes not in the row of a step that uses them`. Usually the note's `type` is wrong (a component typed as `data`, or a file typed as `component`).
 6. **Right level:** every box belongs at the chosen depth. Nothing important is missing, and nothing from a deeper level crept in.
 
 A few crossings are normal in a connected system. Don't chase a score of 0.
