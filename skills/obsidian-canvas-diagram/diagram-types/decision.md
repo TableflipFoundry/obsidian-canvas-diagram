@@ -5,7 +5,7 @@
 ## Conventions
 
 - **Box types:** `decision` for each question, `function` for actions taken, `event` for final outcomes.
-- **Arrows:** yellow for branches, labelled with the answer ("yes", "no", "over $500"). Green into a success outcome, red into a failure outcome.
+- **Arrows:** plain, labelled with the answer ("yes", "no", "over $500"). Red into a failure outcome. There are no branch or success colors; the labels carry the meaning (SKILL.md, "The legend").
 
 ## Making it read top to bottom
 

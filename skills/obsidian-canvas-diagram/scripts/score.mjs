@@ -14,11 +14,13 @@ const geo = await page.evaluate(async () => {
   const missingNotes = [...canvas.nodes.values()]
     .filter(n => n.getData().type === 'file' && !app.vault.getAbstractFileByPath(n.getData().file))
     .map(n => n.getData().file);
-  const nodes = [...canvas.nodes.values()].map(n => ({
+  // The generated legend panel (ids "legend-…") isn't part of the diagram's flow.
+  const isLegend = id => String(id).startsWith('legend-');
+  const nodes = [...canvas.nodes.values()].filter(n => !isLegend(n.id)).map(n => ({
     id: n.id, x: n.x, y: n.y, w: n.width, h: n.height,
     name: n.file ? n.file.basename : (n.label ?? n.text ?? n.id), group: n.getData().type === 'group',
   }));
-  const edges = [...canvas.edges.values()].map(e => {
+  const edges = [...canvas.edges.values()].filter(e => !isLegend(e.id)).map(e => {
     const p = e.path.display;
     const len = p.getTotalLength();
     const pts = [];
@@ -122,10 +124,10 @@ for (const b of boxes) {
 // (no size check: a diagram has as many boxes as its scope and depth need)
 
 // ---------- score (lower is better; 0 = clean) ----------
-// upward arrows are sometimes right (a reply or callback), so they cost little;
-// the reviewer decides whether each one belongs.
+// Upward arrows are normal when that's the way data or a request travels, so
+// they're listed for a direction double-check but cost nothing.
 const W = { throughNode: 10, overlap: 10, labelOnNode: 6, labelOnLabel: 6, labelOnEdge: 4, crossing: 1,
-  upward: 2, startNotAtTop: 5, tooBig: 20, missingNote: 50 };
+  upward: 0, startNotAtTop: 5, tooBig: 20, missingNote: 50 };
 const score = Object.entries(W).reduce((s, [k, w]) => s + w * issues[k].length, 0);
 
 if (flag === '--json') { console.log(JSON.stringify({ score, issues })); process.exit(0); }
@@ -133,7 +135,7 @@ console.log(`${canvasPath}\n  score ${score}  (0 = clean; lower is better)`);
 const titles = {
   overlap: 'edges on top of each other', throughNode: 'edges through a box', labelOnNode: 'labels on a box',
   labelOnLabel: 'labels on labels', labelOnEdge: 'labels sitting on another edge', crossing: 'edge crossings',
-  upward: 'arrows pointing upward (check each is a reply/callback)', startNotAtTop: 'starting points not in the top row',
+  upward: 'arrows pointing upward (fine if that is the way the thing travels; double-check the direction)', startNotAtTop: 'starting points not in the top row',
   missingNote: 'boxes whose note Obsidian cannot find (shows as a file path, not the note)',
 };
 for (const k of Object.keys(titles)) {

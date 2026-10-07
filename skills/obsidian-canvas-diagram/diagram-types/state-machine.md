@@ -5,7 +5,7 @@
 ## Conventions
 
 - **Box types:** `component` for each state (a state is something the system *is being*). A small `event` box labelled like "created" marks where it starts.
-- **Arrows:** label each one with what causes the change ("customer pays", "30 days pass", "manager approves"). Green for the normal progression, yellow for conditional moves, red for failure states.
+- **Arrows:** label each one with what causes the change ("customer pays", "30 days pass", "manager approves"). Plain for normal progress, red for moves into a failure state. Moves that happen on a timer ("30 days pass") get a dotted line (SKILL.md, "The legend").
 
 ## Making it read top to bottom
 

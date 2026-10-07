@@ -28,21 +28,28 @@ if (!fs.existsSync(path.join(here, 'node_modules', 'elkjs')) || !fs.existsSync(p
 // --- validate ----------------------------------------------------------------
 const abs = path.resolve(canvasFile);
 const canvas = JSON.parse(fs.readFileSync(abs, 'utf8').replace(/^\uFEFF/, ''));
+// The legend panel is generated: drop any old one, a fresh one is added after layout.
+const { legendProblems, buildLegend, isLegendItem } = await import('./lib/legend.mjs');
+canvas.nodes = (canvas.nodes ?? []).filter(n => !isLegendItem(n));
+canvas.edges = (canvas.edges ?? []).filter(e => !isLegendItem(e));
 const ids = new Set((canvas.nodes ?? []).map(n => n.id));
 const bad = (canvas.edges ?? []).filter(e => !ids.has(e.fromNode) || !ids.has(e.toNode));
 if (bad.length) { console.error('INVALID: edges point at missing nodes: ' + bad.map(e => e.id).join(', ')); process.exit(4); }
 if ((canvas.nodes ?? []).some(n => n.type === 'group')) console.warn('WARNING: group nodes are not laid out yet; they keep their old position.');
-// Advanced Canvas styles: stop on typos; drop arrow routing (it changes edge shapes).
-const { styleProblems } = await import('./lib/styles.mjs');
+// Drop Advanced Canvas arrow routing (it changes edge shapes the layout relies on).
 for (const e of canvas.edges ?? []) if (e.styleAttributes?.pathfindingMethod) {
   delete e.styleAttributes.pathfindingMethod;
   console.warn(`WARNING: removed pathfindingMethod from arrow ${e.id} (not allowed; the layout uses normal curves).`);
 }
-const badStyles = styleProblems(canvas);
-if (badStyles.length) { console.error('INVALID styles:\n' + badStyles.map(p => '  ' + p.msg).join('\n')); process.exit(4); }
-// Every box's note must exist inside the vault, or Obsidian shows "file not found" boxes.
 const { findVaultRoot } = await import('./lib/obsidian.mjs'); // after the setup check (it needs playwright)
 const vaultRoot = findVaultRoot(abs);
+// Strict legend: every color, border, line and arrowhead must be on the legend.
+const offLegend = legendProblems(canvas, vaultRoot);
+if (offLegend.length) {
+  console.error('INVALID (not on the legend, see SKILL.md "The legend"):\n' + offLegend.map(p => '  ' + p.msg).join('\n'));
+  process.exit(4);
+}
+// Every box's note must exist inside the vault, or Obsidian shows "file not found" boxes.
 const missing = (canvas.nodes ?? []).filter(n => n.type === 'file' && !fs.existsSync(path.join(vaultRoot, n.file ?? '')));
 if (missing.length) {
   console.error(`INVALID: vault is ${vaultRoot}, and these boxes point at notes that don't exist there:\n` +
@@ -95,15 +102,19 @@ const best = results[0];
 
 // Keep everything from the original file except geometry.
 const laid = JSON.parse(fs.readFileSync(best.out, 'utf8').replace(/^\uFEFF/, ''));
-if (sideNodes.length) {
-  // Put side boxes in a column to the right of the diagram, starting at its top.
+{
+  // Side column to the right of the diagram, from its top: the issues box(es),
+  // then the generated legend panel.
   const boxes = laid.nodes.filter(n => n.type !== 'group');
-  let x = Math.max(...boxes.map(n => n.x + n.width)) + 240;
+  const x = Math.max(...boxes.map(n => n.x + n.width)) + 240;
   let y = Math.min(...boxes.map(n => n.y));
   for (const n of sideNodes) { n.x = x; n.y = y; y += n.height + 60; }
   laid.nodes.push(...sideNodes);
   // edges touching side boxes (none expected) are kept as written
   laid.edges.push(...(canvas.edges ?? []).filter(e => sideIds.has(e.fromNode) || sideIds.has(e.toNode)));
+  const legend = buildLegend(laid, vaultRoot, x, y);
+  laid.nodes.push(...legend.nodes);
+  laid.edges.push(...legend.edges);
 }
 fs.writeFileSync(abs, JSON.stringify(laid, null, '\t'));
 // Tell the running diagram job (if any) which version of the canvas was laid out.

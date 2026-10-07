@@ -4,21 +4,20 @@
 
 ## Conventions
 
-- **Box types:** `component` for services, apps and modules. `data` for databases, files and queues. `actor` for users and outside systems.
-- **Arrows:** cyan for data flow, purple for crossing into an outside system, orange for queued or background work, red for failure paths if you show them. Plain for "calls" or "starts".
-- **Outside systems** (eBay, a payment provider, an email service) are purple `actor` boxes.
+- **Box types:** `person` for people, `screen` for what they see, `component` for servers, services and modules, `data` for databases, files and queues, `system` for outside services.
+- **Arrows:** cyan for data, purple for crossing into an outside system, red for failure paths if you show them, plain for "calls" or "starts". Background or queued work gets a long-dashed line, timers a dotted line (SKILL.md, "The legend").
+- **Outside systems** (eBay, a payment provider, an email service) are purple `system` boxes.
 
-## Making it read top to bottom
+## Arrow directions
 
-Point arrows the way requests and data flow, so the layers stack naturally:
+Every arrow starts where the thing comes from and ends where it goes (SKILL.md, "Arrows"):
 
-1. who uses it (people, triggers)
-2. what they touch (apps, screens)
-3. what that talks to (servers, APIs)
-4. the services doing the work
-5. where things are stored, and the outside systems at the bottom
+- **Requests** go from who asks to who does it: person → screen → server → service.
+- **Data** goes from where it lives to who receives it: `settings-file → price-engine` when the engine reads settings, `price-engine → products-table` when it saves prices.
 
-Draw a reply only when it tells the reader something ("callback", "webhook"). Normal request and response doesn't need a return arrow.
+The layout follows the arrows, so a data store that only feeds others may sit high on the page. That's correct; don't flip arrows to push stores to the bottom.
+
+Draw a reply only when it tells the reader something ("callback", "webhook"). A normal request and its answer need just the request arrow.
 
 ## Keep it readable
 

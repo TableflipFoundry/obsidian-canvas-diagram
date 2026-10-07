@@ -2,7 +2,8 @@
 // Improves a canvas layout by simulated annealing against a local replica of
 // Obsidian's edge rendering. The input's top-to-bottom rows (from layout.mjs /
 // ELK) are locked: boxes slide within their row, rows change spacing, edges
-// pick sides. Boxes may change row only in the final improvement-only phase.
+// pick sides. Boxes may change row only when the top-to-bottom order stays valid.
+// A final cleanup tries every side pair for each arrow.
 // Scores the same problems as score.mjs, plus flow and compactness terms.
 // Group nodes are not supported yet (they are ignored and keep their position).
 import fs from 'node:fs';
@@ -37,6 +38,11 @@ const EF = edges.map(e => idx.get(e.fromNode)), ET = edges.map(e => idx.get(e.to
 // ELK already chose which few edges run backwards to break cycles; those are exempt.
 const cy0 = i => nodes[i].y + nodes[i].height / 2;
 const FLOWS_DOWN = edges.map((_, k) => cy0(ET[k]) - cy0(EF[k]) > 20);
+// Simple chain link: the only arrow out of one box and the only arrow into the
+// next. These read best stacked in a straight column.
+const outDeg = new Array(nodes.length).fill(0), inDeg = new Array(nodes.length).fill(0);
+edges.forEach((_, k) => { outDeg[EF[k]]++; inDeg[ET[k]]++; });
+const CHAIN = edges.map((_, k) => outDeg[EF[k]] === 1 && inDeg[ET[k]] === 1);
 
 // Rows: the input's top-to-bottom layering (from ELK) is locked. Every box keeps
 // its row; rows keep their order. Only row spacing and positions within a row change.
@@ -63,6 +69,17 @@ function applyRows() {
 }
 applyRows();
 const rowMembers = r => nodes.map((_, i) => i).filter(i => RANK[i] === r);
+// Rows a box can move to without breaking the top-to-bottom order: below every
+// box that feeds it (along downward arrows) and above every box it feeds.
+function legalRows(i) {
+  let lo = 0, hi = rows - 1;
+  for (let k = 0; k < edges.length; k++) {
+    if (!FLOWS_DOWN[k] || EF[k] === ET[k]) continue;
+    if (ET[k] === i) lo = Math.max(lo, RANK[EF[k]] + 1);
+    if (EF[k] === i) hi = Math.min(hi, RANK[ET[k]] - 1);
+  }
+  return [lo, hi];
+}
 
 // ---------- Obsidian edge replica ----------
 function anchor(i, side, off) {
@@ -100,6 +117,14 @@ const segX = (p1, p2, p3, p4) => {
   const u = ((p3[0] - p1[0]) * (p2[1] - p1[1]) - (p3[1] - p1[1]) * (p2[0] - p1[0])) / d;
   return t > 0 && t < 1 && u > 0 && u < 1;
 };
+// The sides a person would pick: compare the gaps between the boxes, relative
+// to their size, and use the axis with the bigger gap.
+function naturalSides(a, b) {
+  const dx = (b.x + b.w / 2) - (a.x + a.w / 2), dy = (b.y + b.h / 2) - (a.y + a.h / 2);
+  if (Math.abs(dy) / (a.h + b.h) >= Math.abs(dx) / (a.w + b.w))
+    return dy >= 0 ? ['bottom', 'top'] : ['top', 'bottom'];
+  return dx >= 0 ? ['right', 'left'] : ['left', 'right'];
+}
 const W = { throughNode: 10, overlap: 10, labelOnNode: 6, labelOnLabel: 6, labelOnEdge: 4, crossing: 1 };
 const CELL = 24;
 
@@ -177,11 +202,17 @@ function evaluate(detail = false) {
     const ax = a.x + a.w / 2, ay = a.y + a.h / 2, bx = b.x + b.w / 2, by = b.y + b.h / 2;
     if (FLOWS_DOWN[k] && by - ay < 60) { counts.backFlow++; soft += (60 - (by - ay)) * 0.05; }
     // spine: downward edges prefer to run straight down (per row they span)
-    if (FLOWS_DOWN[k]) soft += Math.abs(bx - ax) * 0.03 / Math.max(1, RANK[ET[k]] - RANK[EF[k]]);
+    if (FLOWS_DOWN[k]) soft += Math.abs(bx - ax) * (CHAIN[k] ? 0.12 : 0.03) / Math.max(1, RANK[ET[k]] - RANK[EF[k]]);
     // sides should face the other box
     const [fx, fy] = NORMAL[FS[k]], [tx, ty] = NORMAL[TS[k]];
     if (fx * (bx - ax) + fy * (by - ay) < 0) counts.sideAway++;
     if (tx * (ax - bx) + ty * (ay - by) < 0) counts.sideAway++;
+    // natural sides: a box below is reached bottom -> top, a box beside it
+    // right -> left (or left -> right). Other sides cost a little, less than a
+    // crossing, so they're used only when they avoid a real problem.
+    const [nf, nt] = naturalSides(a, b);
+    if (FS[k] !== nf) soft += 12;
+    if (TS[k] !== nt) soft += 12;
   }
   const score = Object.keys(W).reduce((s, k) => s + W[k] * counts[k], 0) + 8 * counts.backFlow + 4 * counts.sideAway;
   // compactness: total edge length and bounding box
@@ -189,7 +220,9 @@ function evaluate(detail = false) {
   const minX = Math.min(...B.map(b => b.x)), maxX = Math.max(...B.map(b => b.x + b.w));
   const minY = Math.min(...B.map(b => b.y)), maxY = Math.max(...B.map(b => b.y + b.h));
   const area = (maxX - minX) * (maxY - minY);
-  const total = score * 10 + soft * 0.5 + len * 0.01 + area / 20000 + penalty;
+  // Shape: a diagram much taller than it is wide is hard to read on a screen.
+  const tooTall = Math.max(0, (maxY - minY) - 1.4 * (maxX - minX));
+  const total = score * 10 + soft * 0.5 + len * 0.01 + area / 20000 + tooTall * 0.15 + penalty;
   return detail ? { total, score, counts, len: Math.round(len), size: `${maxX - minX}x${maxY - minY}` } : total;
 }
 
@@ -220,14 +253,20 @@ for (let it = 0; it < ITERS; it++) {
     const rr = (rand() * rows) | 0, ms = rowMembers(rr), d = snap((rand() - 0.5) * 400), ox = ms.map(i => X[i]);
     ms.forEach(i => X[i] += d);
     undo = () => ms.forEach((i, q) => X[i] = ox[q]);
-  } else if (r < 0.66) { // move a box to another row (upward-pointing arrows are penalised)
-    if (frac < 0.75) continue; // only in the final, improvement-only phase
+  } else if (r < 0.69) { // move a box to another row that keeps the order valid
+    // (still below every box that feeds it, above every box it feeds). This
+    // lets boxes share rows, so diagrams don't grow one-box-per-row tall.
     const i = (rand() * nodes.length) | 0, old = RANK[i];
-    const to = Math.min(rows - 1, Math.max(0, old + Math.round((rand() - 0.5) * 8)));
+    const [lo, hi] = legalRows(i);
+    if (lo > hi || (lo === hi && lo === old)) continue;
+    const to = rand() < 0.5 ? lo : lo + ((rand() * (hi - lo + 1)) | 0); // bias towards pulling up
     if (to === old) continue;
     RANK[i] = to; applyRows();
     undo = () => { RANK[i] = old; applyRows(); };
-  } else if (r < 0.72) { // change the gap above a row
+  } else if (r < 0.74) { // change the gap above a row
+    // (There used to be a free row move here that could break the order. It
+    // produced upward "next" arrows between wizard steps, so it was removed;
+    // the legal row move above covers compaction.)
     const rr = 1 + ((rand() * (rows - 1)) | 0), old = GAP[rr];
     GAP[rr] = Math.max(MIN_ROW_GAP, snap(old + (rand() - 0.5) * 160));
     applyRows();
@@ -246,6 +285,20 @@ for (let it = 0; it < ITERS; it++) {
   if (it % 10000 === 0) console.log(it, Math.round(cur), Math.round(best));
 }
 load(bestState);
+// Cleanup: the random search can leave an arrow on an odd side when nothing
+// penalised it. Try every side pair for each arrow and keep the best.
+for (let pass = 0; pass < 2; pass++) {
+  let base = evaluate();
+  for (let k = 0; k < edges.length; k++) {
+    let bestPair = [FS[k], TS[k]];
+    for (const f of SIDES) for (const t of SIDES) {
+      FS[k] = f; TS[k] = t;
+      const v = evaluate();
+      if (v < base - 1e-9) { base = v; bestPair = [f, t]; }
+    }
+    [FS[k], TS[k]] = bestPair;
+  }
+}
 const result = evaluate(true);
 console.log('best', result);
 

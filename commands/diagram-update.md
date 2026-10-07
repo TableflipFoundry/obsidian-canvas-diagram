@@ -28,7 +28,17 @@ If **any** note has `status: exists` or a `source`, run a drift check before mak
 
 If the diagram is all `status: planned`, skip this and go straight to the requested changes.
 
-## 3. Make the changes
+## 3. Bring it up to the legend
+
+Diagrams made before the strict legend (SKILL.md, "The legend") may use retired colors. The pipeline refuses to lay them out until they're fixed:
+
+- Orange (`"2"`) arrows meant "queued": remove the color and add `"styleAttributes": { "path": "long-dashed" }`.
+- Yellow (`"3"`) and green (`"4"`) arrows: remove the color, and add a short label if the meaning ("yes", "if paid") is lost.
+- Box colors must match the note's type. Notes with the old `actor` type can stay as they are, or be changed to `person` or `system` (with blue `"#3d6fd9"` or purple `"6"`) if you're editing them anyway.
+
+Tell the user in one line that the diagram was converted to the current legend.
+
+## 4. Make the changes
 
 - **Adding a box:** search `Diagrams/nodes/` first and reuse a note if one fits; otherwise write a new one. Add it to the canvas with position 0.
 - **Removing a box:** remove it from the canvas only. **Don't delete the note.** Other diagrams may use it.
@@ -36,7 +46,7 @@ If the diagram is all `status: planned`, skip this and go straight to the reques
 - **Changing arrows:** only affects this canvas.
 - Don't create other diagrams unless the user asks.
 
-## 4. Lay out, review, report
+## 5. Lay out, review, report
 
 Run the pipeline on the changed canvas, review the screenshot, fix and repeat, then record the review (SKILL.md, "Layout and review"). The whole diagram is laid out again, so boxes may move.
 

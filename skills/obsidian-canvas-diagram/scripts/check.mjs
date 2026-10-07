@@ -13,13 +13,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readJob, writeJob, markerPath, fileHash } from './lib/job.mjs';
-import { styleProblems } from './lib/styles.mjs';
+import { legendProblems, isLegendItem } from './lib/legend.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SECTIONS = {
   component: ['Responsibilities', 'Interfaces', 'Dependencies', 'Notes'],
   function: ['Inputs', 'Outputs', 'Side effects', 'Called by', 'Calls'],
   actor: ['Goals', 'Permissions / capabilities', 'Touchpoints'],
+  person: ['Goals', 'Permissions / capabilities', 'Touchpoints'],
+  system: ['Goals', 'Permissions / capabilities', 'Touchpoints'],
+  screen: ['Responsibilities', 'Interfaces', 'Dependencies', 'Notes'],
   data: ['Schema / shape', 'Where stored', 'Readers', 'Writers', 'Lifecycle'],
   decision: ['Condition', 'Inputs to the decision', 'Branches'],
   event: ['Trigger', 'Payload', 'Subscribers'],
@@ -61,7 +64,9 @@ export function runChecks(vault, job) {
   try { canvas = JSON.parse(fs.readFileSync(canvasFile, 'utf8').replace(/^﻿/, '')); }
   catch { fail('canvas', `The diagram ${job.canvas} doesn't exist or isn't valid JSON yet. Write it (SKILL.md, "The .canvas file").`); return { failures, canvas: null }; }
 
-  for (const p of styleProblems(canvas)) fail(`style:${p.owner}`, `${p.msg}. See SKILL.md, "Line styles and borders (Advanced Canvas)".`);
+  for (const p of legendProblems(canvas, vault)) fail(`legend:${p.id}`, `${p.msg}. Everything must be on the legend (SKILL.md, "The legend").`);
+  if (!(canvas.nodes ?? []).some(n => n.id === 'legend-group'))
+    fail('legend-panel', `The diagram has no legend panel. The pipeline adds it; run: node "${path.join(here, 'pipeline.mjs')}" "${path.join(vault, job.canvas)}"`);
   // planned parts must look planned
   for (const n of (canvas.nodes ?? []).filter(n => n.type === 'file')) {
     const p = path.join(vault, n.file ?? '');
@@ -97,7 +102,7 @@ export function runChecks(vault, job) {
     if (!hasFront) problems.push('it has no frontmatter block at the top');
     for (const k of ['id', 'title', 'type', 'status', 'level']) if (!fm[k]) problems.push(`frontmatter is missing "${k}"`);
     // people and outside services have no code of their own, so no source is required
-    if (fm.status === 'exists' && !fm.source && !isIssues && fm.type !== 'actor') problems.push('status is "exists" but there is no "source" path');
+    if (fm.status === 'exists' && !fm.source && !isIssues && !['actor', 'person', 'system'].includes(fm.type)) problems.push('status is "exists" but there is no "source" path');
     const firstLine = body.split(/\r?\n/).find(l => l.trim());
     if (firstLine && /^#\s/.test(firstLine)) problems.push('it starts with an H1 heading (remove it; Obsidian shows the filename as the title)');
     else if (!firstLine || /^#{1,6}\s/.test(firstLine)) problems.push('it must open with the plain-language paragraph (what it is, why it exists, how it works) before any heading');

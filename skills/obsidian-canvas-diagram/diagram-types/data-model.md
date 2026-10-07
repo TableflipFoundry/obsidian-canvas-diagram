@@ -5,7 +5,7 @@
 ## Conventions
 
 - **Box type:** `data` for every table, collection or entity.
-- **Arrows:** cyan, with a diamond arrowhead (`"styleAttributes": { "arrow": "diamond" }`) for "owns / is part of". Label with the relationship when it helps: "has many", "belongs to", "1:N".
+- **Arrows:** cyan (data), with a diamond arrowhead (`"styleAttributes": { "arrow": "diamond" }`) for "owns / is part of". Label with the relationship when it helps: "has many", "belongs to", "1:N".
 - **Fields, types and constraints** go in each note's `Schema / shape` section. The canvas shows only how things relate.
 
 ## Making it read top to bottom

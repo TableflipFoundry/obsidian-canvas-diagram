@@ -101,7 +101,7 @@ Every note has:
 ---
 id: <stable-identifier, kebab-case>
 title: <human-readable name>
-type: <component | function | actor | data | decision | event>
+type: <person | system | screen | component | function | data | decision | event>
 status: <planned | exists>
 source: <path/to/code/file>      # only when status: exists
 level: <context | container | component | code>
@@ -117,7 +117,7 @@ Every section is expected. If one really doesn't apply, write "None"; don't leav
 |---|---|
 | `component` | Responsibilities · Interfaces · Dependencies · Notes |
 | `function` | Inputs · Outputs · Side effects · Called by · Calls |
-| `actor` | Goals · Permissions / capabilities · Touchpoints |
+| `person`, `system` (and old `actor`) | Goals · Permissions / capabilities · Touchpoints |
 | `data` | Schema / shape · Where stored · Readers · Writers · Lifecycle |
 | `decision` | Condition · Inputs to the decision · Branches |
 | `event` | Trigger · Payload · Subscribers |
@@ -216,8 +216,8 @@ A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).
 ```json
 {
   "nodes": [
-    { "id": "n1", "type": "file", "file": "nodes/business-user.md", "x": 0, "y": 0, "width": 320, "height": 200, "color": "6" },
-    { "id": "n2", "type": "file", "file": "nodes/sales-screen.md",  "x": 0, "y": 0, "width": 320, "height": 200, "color": "5" }
+    { "id": "n1", "type": "file", "file": "nodes/shop-staff.md",   "x": 0, "y": 0, "width": 320, "height": 200, "color": "#3d6fd9" },
+    { "id": "n2", "type": "file", "file": "nodes/sales-screen.md", "x": 0, "y": 0, "width": 320, "height": 200, "color": "#d4579b" }
   ],
   "edges": [
     { "id": "e1", "fromNode": "n1", "toNode": "n2", "label": "rings up sale" }
@@ -231,98 +231,100 @@ A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).
 - `type`: `"file"`. `file`: path from the vault root, for example `nodes/sales-screen.md`.
 - `x`, `y`: **put 0 for all of them.** The pipeline places them.
 - `width` × `height`: **320 × 200** (shows the first lines of the note). For a note whose opening paragraph matters a lot, you may use a taller height in 40px steps. Never go wider than 360.
-- `color`: by note type (palette below).
-- `styleAttributes`: `{ "border": "dashed" }` for planned parts, `{ "border": "dotted" }` for broken or unused ones (see "Line styles and borders").
+- `color`: from the note's type, exactly as in "The legend".
+- `styleAttributes`: `{ "border": "dashed" }` for planned parts, `{ "border": "dotted" }` for broken or unused ones (see "The legend").
 
 **Arrows**
 
 - `id`, `fromNode`, `toNode`. Leave out `fromSide` / `toSide`; the pipeline picks them.
-- **Direction carries the story.** The layout reads the diagram top to bottom by following the arrows. Point each arrow the way the action or data flows: user → screen → server → database. A diagram's starting point (a user, a trigger, an incoming event) should have arrows going *out* and none coming *in*.
-- **Replies and callbacks point back up.** They are fine, but keep them rare. If most arrows go both ways, draw only the direction that tells the story.
+- **An arrow starts where the thing comes from and ends where it goes.** This is the most important rule for arrows; get the direction right before anything else:
+  - **Data** goes from where it lives to whoever receives it. When the price engine *reads* the settings, the arrow is `settings-file → price-engine`. When it *saves* prices, it's `price-engine → products-table`. Something that reads and writes gets the arrow for what matters to the story; if both matter, two arrows.
+  - **Requests and actions** go from whoever starts them to whoever carries them out: `shop-staff → sales-screen`, `price-timer → price-fetcher`.
+  - Never point an arrow at a data store just because the code "uses" it. Ask what actually travels, and which way.
+- **Arrows may point up.** Position doesn't decide direction. The layout follows the arrows, so a data source may end up higher on the page than the thing that reads it. That's fine. Don't flip an arrow to make the picture flow downward.
+- A diagram's starting point (a user, a trigger, an incoming event) has arrows going *out* and none coming *in*.
 - **Watch out for two-way pairs between main pieces.** An arrow each way between two big boxes (screens → server "requests", server → screens "live updates") forms a loop. The layout may break the loop the wrong way and put the server *above* the screens. At Overview level, draw only the main direction and describe the other in the notes.
-- `color`: by meaning (palette below). Leave it out for a plain "calls" / "connects to".
-- `styleAttributes`: line style for *when* it happens (see "Line styles and borders"). Leave it out for "right away".
-- `label`: optional. **Keep labels short (1–3 words).** Labels take real space on the canvas. Prefer color; add a label only when the arrow's meaning isn't obvious.
+- `color`: `"5"` data, `"6"` outside service, `"1"` error, or leave it out for a plain call (see "The legend").
+- `styleAttributes`: line style for *when* it happens (see "The legend"). Leave it out for "right away".
+- `label`: optional. **Keep labels short (1–3 words)** and name **what travels**: "pricing rules", "new prices", "sale", "fetch now". A label must read correctly in the arrow's direction. Labels take real space on the canvas, so add one only when the arrow's meaning isn't obvious.
 - **Don't draw every connection.** Draw the ones that explain how the system works. A box with more than about 6 arrows is a sign the diagram needs simplifying. **One exception:** in an Overview of a system built around one central server, that server is naturally the hub, with an arrow to each database and outside service. That's accepted at Overview level.
 
-Group nodes (`"type": "group"`) are **not supported yet**. Don't use them; show grouping with color.
+Group nodes (`"type": "group"`) are **not supported yet**. Don't use them; show grouping with the box types and the level of detail.
 
-## Color palette (universal, same in every diagram)
+## The legend (strict, same in every diagram)
 
-### Arrow colors
+Every diagram uses this one fixed set of colors and styles, and nothing else. **The pipeline rejects anything off the legend, and so does the stop check.** That covers a box colored differently from its note's type, an arrow color not listed here, or an unknown style. The pipeline also **adds a legend panel to every diagram automatically**: a "Legend" group in the side column under the issues box, showing only what that diagram uses. Never draw your own legend, and never edit the generated one (its ids start with `legend-`; it's rebuilt every run).
 
-| Color | Preset | Meaning |
-|---|---|---|
-| Red | `"1"` | Error / failure path / destructive action |
-| Orange | `"2"` | Async / deferred / queued |
-| Yellow | `"3"` | Conditional / decision branch / "depends on" |
-| Green | `"4"` | Success / happy path / confirmed working |
-| Cyan | `"5"` | Data flow / information passing |
-| Purple | `"6"` | External / third-party / outside system boundary |
-| (none) | — | Plain "connects to" / "calls" |
+Styles (dashed and dotted lines, borders, arrowheads) come from the Obsidian community plugin **Advanced Canvas**, which is required. The scripts check the project's vault and, if it's missing, install the unmodified copy **bundled with this plugin** (`vendor/advanced-canvas`) and turn it on. There's no download, and the scripts never look in other vaults or folders.
 
-### Box colors (by note `type`)
+**Box color says what a thing *is*. Arrow color says *what* flows. Arrow line says *when*.**
 
-| Type | Preset |
-|---|---|
-| `component` | `"5"` (cyan) |
-| `function` | `"4"` (green) |
-| `actor` | `"6"` (purple) |
-| `data` | `"3"` (yellow) |
-| `decision` | `"2"` (orange) |
-| `event` | `"1"` (red) |
+### Boxes: color comes from the note's `type`
 
-Don't invent per-diagram color meanings.
+| `type` | Legend name | `"color"` | Use for |
+|---|---|---|---|
+| `person` | Person | `"#3d6fd9"` (blue) | People who use the system: staff, customers, admins |
+| `system` | Outside system | `"6"` (purple) | Services and programs outside this codebase: eBay, Shopify, a price API, another app whose files it reads |
+| `screen` | Screen | `"#d4579b"` (pink) | Things a user sees: pages, screens, dialogs, the desktop app window |
+| `component` | Component | `"5"` (cyan) | Code that runs behind the scenes: servers, services, modules, workers, jobs, routes |
+| `function` | Function | `"4"` (green) | One specific function or step |
+| `data` | Data | `"3"` (yellow) | Anything that stores information: databases, tables, files, queues, caches |
+| `decision` | Decision | `"2"` (orange) | A branch point in logic |
+| `event` | Event | `"1"` (red) | A trigger or occurrence: a webhook, a timer firing, "sale completed" |
 
-## Line styles and borders (Advanced Canvas)
+`actor` is an old type (from notes made before 2026-10). It's still accepted, with purple, but new notes use `person` or `system`. The issues box is always red (`"1"`).
 
-Diagrams require the Obsidian community plugin **Advanced Canvas**. It adds dashed and dotted lines, arrowhead styles and box borders. The scripts check the project's vault and, if it's missing, install the unmodified copy **bundled with this plugin** (`vendor/advanced-canvas`) and turn it on. There's no download, and the scripts never look in other vaults or folders. You don't need to do anything to set it up.
-
-**Color says *what kind* of connection it is. Line style says *when* it happens.** Use both.
-
-### How to write a style
-
-Add a `styleAttributes` object to the arrow or box in the `.canvas` JSON. Leave it out for the default.
-
-```json
-{ "id": "e7", "fromNode": "n2", "toNode": "n5", "label": "price update", "color": "2",
-  "styleAttributes": { "path": "long-dashed" } }
-
-{ "id": "n9", "type": "file", "file": "nodes/new-report-screen.md", "x": 0, "y": 0, "width": 320, "height": 200, "color": "5",
-  "styleAttributes": { "border": "dashed" } }
-```
-
-### Arrow line (`path`): when it happens
-
-| Value | Meaning | Example |
-|---|---|---|
-| (leave out): solid | Happens right away; the caller waits for it | screen asks the server for a product |
-| `long-dashed` | Handed off to happen **later**: queued, background, after a delay, an event someone reacts to | sale saved, then stock pushed to eBay by the queue |
-| `dotted` | **Repeats on a timer**: scheduled jobs, polling | price timer fetches gold prices every hour |
-| `short-dashed` | **Planned**: not built yet | a connection in a `/diagram-plan` design |
-
-### Arrowhead (`arrow`)
-
-| Value | Meaning |
-|---|---|
-| (leave out): triangle | Normal "calls / sends / leads to" |
-| `diamond` | **Is part of / owns** (mainly data models: an order owns its lines) |
-
-Don't use the other arrowhead styles.
-
-### Box border (`border`)
+### Box borders (`styleAttributes.border`)
 
 | Value | Meaning |
 |---|---|
 | (leave out): solid | Exists and works |
-| `dashed` | **Planned**, not built yet. Required on every note with `status: planned`. |
-| `dotted` | **Broken or unused** code that still exists (a button that does nothing, a file nothing calls). Its note and the issues note explain why. |
+| `"dashed"` | **Planned**, not built yet. Required on every note with `status: planned`. |
+| `"dotted"` | **Broken or unused**: code that still exists but doesn't work or isn't used. Its note and the issues note say why. |
+
+### Arrow lines (`styleAttributes.path`): when it happens
+
+| Value | Legend name | Use for |
+|---|---|---|
+| (leave out): solid | right away | The caller waits for it: a screen asks the server for a product |
+| `"long-dashed"` | later (queued, background) | Handed off to happen later: a queue, a background job, after a delay, an event someone reacts to |
+| `"dotted"` | on a timer | Repeats on a schedule: a price timer, polling every few minutes |
+| `"short-dashed"` | planned | A connection that isn't built yet |
+
+### Arrowheads (`styleAttributes.arrow`)
+
+| Value | Legend name | Use for |
+|---|---|---|
+| (leave out): triangle | | Normal "calls / sends / leads to" |
+| `"diamond"` | is part of | Owns or contains (mainly data models: an order owns its lines) |
+
+### Arrow colors (`"color"`): what flows
+
+| `"color"` | Legend name | Use for |
+|---|---|---|
+| (leave out): gray | | A plain call or "connects to" |
+| `"5"` (cyan) | data | Information being passed, read or saved |
+| `"6"` (purple) | outside service | Crossing into an outside system |
+| `"1"` (red) | error | A failure path |
+
+No other arrow colors. Show branches and conditions with **labels** ("yes", "no", "if paid"), not color.
+
+### How to write it
+
+```json
+{ "id": "n4", "type": "file", "file": "nodes/products-table.md", "x": 0, "y": 0, "width": 320, "height": 200, "color": "3" }
+{ "id": "n9", "type": "file", "file": "nodes/report-screen.md",  "x": 0, "y": 0, "width": 320, "height": 200, "color": "#d4579b",
+  "styleAttributes": { "border": "dashed" } }
+{ "id": "e7", "fromNode": "n2", "toNode": "n5", "label": "push stock", "color": "6",
+  "styleAttributes": { "path": "long-dashed" } }
+```
 
 ### Not allowed
 
-- `pathfindingMethod` (Advanced Canvas's arrow routing): it changes arrow shapes, which the layout is tuned against. The pipeline removes it.
-- `shape` and `textAlign`: they only work on text boxes, and every box here is a note.
-- `border: "invisible"` and any value not listed above. The pipeline and the stop check reject unknown values.
+- Any color or style not in the tables above (custom colors other than the two listed, `border: "invisible"`, other arrowheads).
+- `pathfindingMethod` (Advanced Canvas's arrow routing). It changes arrow shapes, which the layout is tuned against, so the pipeline removes it.
+- `shape` and `textAlign`. They only work on text boxes, and every diagram box is a note.
+- Text or group boxes of your own. Diagram boxes are always notes (`"type": "file"`).
 
 ## Layout and review
 
@@ -365,7 +367,7 @@ Check, in this order:
 2. **Can every arrow be followed** from start to end, without running on top of another arrow or through a box? (score: `edges on top of each other`, `edges through a box`)
 3. **Are labels readable** and clear of boxes and other labels? (score: `labels on a box`, `labels on labels`, `labels sitting on another edge`)
 3b. **Line styles tell the timing:** delayed and background steps are long-dashed, timers are dotted, planned parts are dashed, and broken parts have a dotted border.
-4. **Upward arrows:** the score lists them. Each one should be a real reply or callback. If not, the arrow is probably drawn backwards.
+4. **Arrow directions:** for every arrow, ask "does this thing really travel from the start box to the end box?" Data from where it lives to who receives it; requests from who asks to who does it. The score lists upward arrows. They're fine when that's the true direction, but they're a good place to double-check.
 5. **Starting points not in the top row:** the score lists them. Usually an arrow is pointing the wrong way, or the start is missing its outgoing arrow.
 6. **Right level:** every box belongs at the chosen depth. Nothing important is missing, and nothing from a deeper level crept in.
 
@@ -380,7 +382,7 @@ A few crossings are normal in a connected system. Don't chase a score of 0.
 | Problem | Fix |
 |---|---|
 | Crowded | Check every box belongs at the chosen depth, and every arrow tells part of the story. Remove only what fails those checks; never drop parts the diagram needs, and never split into extra diagrams. |
-| Wrong order / no clear story | Check arrow directions. The story should follow the arrows. Reverse ones that point against the flow. Look for a two-way pair between main boxes and drop the reply arrow. |
+| Wrong order / no clear story | Check every arrow points the way its thing really travels (see "Arrows"). Fix wrong directions, never flip a correct one for looks. Look for a two-way pair between main boxes and keep only the direction that matters for the story. |
 | An arrow passes through a box, or one crossing spoils it | Run the pipeline again unchanged. Each run tries fresh random layouts, so small problems often disappear. If it's still there after one retry and it's only one arrow, accept it. |
 | One box has arrows to everything | Keep the arrows that explain the story and describe the rest in that box's note |
 | Many long arrows | Drop connections that don't explain anything |
