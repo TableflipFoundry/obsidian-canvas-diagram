@@ -6,7 +6,14 @@ The user wants to change an existing diagram. Use the **obsidian-canvas-diagram*
 
 The argument: $ARGUMENTS
 
-It usually names a diagram ("the sales diagram", `Diagrams/sales/sales.canvas`). If it's unclear, list the `.canvas` files under `Diagrams/` and ask which one.
+## 0. Pick the diagram (always ask unless the argument names one)
+
+1. Find every diagram: use the Glob tool with `Diagrams/*/*.canvas` (don't rely on shell commands for this; the shell may not be set up). Each diagram is a folder under `Diagrams/` with one `.canvas` file.
+2. If the argument clearly names exactly one of them ("the sales diagram", `sales`, `Diagrams/sales/sales.canvas`), use it.
+3. Otherwise **ask with the AskUserQuestion tool**, one option per diagram, labelled with the folder name and, as the description, when it was last changed and how many boxes it has. Don't guess, and don't pick the most recent one on your own. If there is only one diagram, still confirm it in the same question.
+4. If the argument doesn't say what should change, ask that too, in the same call: "Bring it up to date (check against the code, current legend, new layout)" (Recommended) or "Change something specific" (the user then describes it).
+
+If you can't ask questions (no AskUserQuestion tool), list the diagrams and stop; don't update anything.
 
 ## 1. Load the diagram
 
