@@ -1,3 +1,4 @@
+import { parseNote } from './lib/notes.mjs';
 // Usage: node notes-index.mjs <path/to/Diagrams> [search words...]
 // Lists every existing note in the vault's nodes/ folder with its type, level,
 // title and source file, so you can reuse notes instead of writing duplicates.
@@ -13,12 +14,7 @@ const vault = path.resolve(vaultArg);
 const nodesDir = path.join(vault, 'nodes');
 if (!fs.existsSync(nodesDir)) { console.log('No notes yet (nodes/ is empty or missing).'); updateJob(vault, { notesIndexAt: new Date().toISOString() }); process.exit(0); }
 
-const front = text => {
-  const m = text.replace(/^﻿/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  const out = {};
-  if (m) for (const line of m[1].split(/\r?\n/)) { const kv = line.match(/^(\w+):\s*(.*)$/); if (kv) out[kv[1]] = kv[2].replace(/\s+#.*$/, '').trim(); }
-  return out;
-};
+const front = (text,file) => { const result = parseNote(text); if (result.errors.length) console.error(`[notes-index] ${file}: ${result.errors.join('; ')}`); return result.fm; };
 
 // which canvases use which note
 const usedBy = new Map();
@@ -41,7 +37,7 @@ const walk = dir => {
 walk(vault);
 
 const rows = fs.readdirSync(nodesDir).filter(f => f.endsWith('.md')).map(f => {
-  const fm = front(fs.readFileSync(path.join(nodesDir, f), 'utf8'));
+  const fm = front(fs.readFileSync(path.join(nodesDir, f), 'utf8'), f);
   return { name: f.replace(/\.md$/, ''), ...fm, usedBy: usedBy.get(`nodes/${f}`) ?? [] };
 });
 const needles = words.map(w => w.toLowerCase());

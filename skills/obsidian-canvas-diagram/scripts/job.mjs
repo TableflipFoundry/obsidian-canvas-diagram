@@ -29,7 +29,7 @@ if (cmd === 'start') {
   writeJob(vault, {
     canvas: path.relative(vault, canvas).split(path.sep).join('/'),
     startedAt: new Date().toISOString(),
-    notesIndexAt: null, layout: null, review: null, noIssues: false, skips: {}, history: [],
+    notesIndexAt: null, layout: null, review: null, reviewVersion: 3, noIssues: false, skips: {}, history: [],
   });
   console.log(`Diagram job started for ${path.relative(vault, canvas)}. The stop check is on until every check passes.`);
   console.log(`Next, the reuse check: node "${path.join(here, 'notes-index.mjs')}" "${vault}"`);
@@ -40,9 +40,14 @@ const job = readJob(vault);
 if (!job) { console.error(`No diagram job is running in ${vault}. Start one with: node job.mjs start <canvas>`); process.exit(1); }
 
 if (cmd === 'reviewed') {
-  const text = rest.join(' ').trim();
+  const relationshipsChecked = rest.includes('--relationships');
+  const text = rest.filter(s => s !== '--relationships').join(' ').trim();
   if (text.length < 40) { console.error('Describe the review in a sentence or two (flow, arrows, labels, level): what you saw and what you changed.'); process.exit(1); }
-  updateJob(vault, { review: { at: new Date().toISOString(), text } });
+  if (job.reviewVersion >= 2 && !relationshipsChecked) {
+    console.error('Review nearby helpers, straight paths, local shared data and preservation in readable screenshots, then add --relationships. A score alone is not a visual review.');
+    process.exit(1);
+  }
+  updateJob(vault, { review: { at: new Date().toISOString(), text, relationshipsChecked } });
   console.log('Review recorded.');
 } else if (cmd === 'no-issues') {
   updateJob(vault, { noIssues: true });

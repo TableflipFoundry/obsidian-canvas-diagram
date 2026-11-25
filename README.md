@@ -1,119 +1,63 @@
-# obsidian-canvas-diagram
+# Obsidian Canvas Diagram
 
-A Claude Code plugin that generates richly-documented diagrams in an Obsidian vault.
+Generate documented, interactive diagrams from code or a proposed design. Each card links to a Markdown note explaining what the component does, why it exists, and how it interacts with the system. Notes are shared across diagrams.
 
-Each diagram is an Obsidian `.canvas` file where every node references a full markdown file. The canvas is the map; the markdown files are the territory — every node has a plain-language explanation plus structured technical detail.
+The package includes **Canvas IO**, an Obsidian desktop companion with Input and Output ports on all four sides of each card. Requests, responses, reads and writes can use distinct, persistent attachment points.
 
-## What it does
+Start with [How it works](docs/how-it-works.md) for the plain-language explanation of ports, arrows, layout and review. See [release notes](CHANGELOG.md) for version 0.6.0.
 
-- Plans new components with diagrams before any code exists.
-- Reverse-engineers diagrams from existing code.
-- Reconciles diagrams against code as the project evolves, flagging drift.
-- Reuses nodes across diagrams via a shared `nodes/` pool, building a knowledge graph instead of standalone images.
-- Uses a universal color palette so diagrams read consistently across your project.
+## Commands
 
-## Slash commands
+- `/diagram-plan <description>` designs a proposed system and draws it.
+- `/diagram-review <path or description>` reads existing code and diagrams its real relationships.
+- `/diagram-update <diagram>` changes an existing diagram while preserving approved work outside the request.
 
-| Command | Use for |
-|---|---|
-| `/diagram-plan <description>` | Greenfield: planning something that doesn't exist yet. |
-| `/diagram-review <path or description>` | Reverse-engineer from existing code. Accepts a path (`src/auth/`) or plain English (`the login flow`). |
-| `/diagram-update <diagram name>` | Modify an existing diagram. If nodes reference real code, performs a drift audit first. |
+Ordinary diagram requests can also invoke the skill. Scope, detail and preferences already supplied in the conversation are reused. One request produces one diagram at the chosen level: big pieces, components, or functions. A feature can include both browser and server code when they work together.
 
-The skill is also auto-invoked when a request matches its description, so users who don't know the slash commands can still trigger it by asking for a diagram in plain English.
+## Output
 
-## Vault layout
+Each project has an Obsidian vault in `Diagrams/`. Shared notes live in `Diagrams/nodes/`. Each diagram has its own folder containing the `.canvas`, a semantic `.layout.json` plan and an issues note when code findings exist.
 
-Each project gets its own vault, a `Diagrams/` folder at the project root:
+Drag an orange **O** port to a cyan **I** port. Click-to-connect and keyboard activation also work. Arrows always run Output to Input. Return edges are added when source evidence and the requested detail support them. Fixed mirrored positions give facing cards separate request/response lanes. Existing ordinary edges retain native attachments; original center hover connectors are disabled on I/O cards, while resize handles remain available.
 
+The generated legend describes card roles, what travels, and timing. Card colors: screens pink, components cyan, data yellow, functions green, decisions orange, events red, people blue and outside systems purple. Edge colors: cyan data, purple external, red error, neutral calls. Patterns: solid now, long dashes deferred, dots scheduled, short dashes planned. Port colors identify I/O roles independently.
+
+## Quality workflow
+
+1. Establish truthful relationships and write notes from source evidence or the approved design.
+2. Generate an initial layout and align main paths, sibling actions and nearby helpers.
+3. Refine I/O sides and labels against the final card positions using the same geometry as the companion. Preserve declared paths and deliberate attachment choices; discourage backward-facing curls.
+4. Check actual paths and labels in Obsidian. Capture an overview and readable closeups of every section.
+5. Record the visual review. Through-card edges, prolonged overlaps, hidden labels, missing notes and detached drawings block completion unless explicitly reported as unresolved limitations.
+
+A low score alone is not proof of quality. The author still reviews proximity, flow, long wires and arrow meaning. A few followable crossings near a hub can remain. Ports and routing cannot guarantee a crossing-free result.
+
+Saved diagrams stay put by default. Opening a file, installing an update or verifying does not convert or rearrange it. I/O conversion, fixed-card attachment refinement and global re-layout are explicit operations. See [I/O workflow](skills/obsidian-canvas-diagram/references/io-ports.md) and [relationship-first layout](skills/obsidian-canvas-diagram/references/relationship-layout.md).
+
+## Installation and development
+
+Requirements: Node.js 22.18+ for the full development/test workflow and Obsidian desktop 1.15.1+ for Canvas IO. The companion uses private Canvas APIs and may need adjustments after Obsidian updates. Mobile is not verified.
+
+In a supported agent plugin manager, add marketplace `TableflipFoundry/claude-plugins` and install `obsidian-canvas-diagram`. Updating this checkout does not publish a marketplace release.
+
+From a local checkout:
+
+```sh
+npm run setup
+npm test
+npm run build
 ```
-<project-root>/
-  Diagrams/                  ← the project's vault
-    nodes/                   ← every note, shared by all diagrams
-      login-handler.md
-      session-store.md
-    overview/
-      overview.canvas
-    auth/
-      auth.canvas
-```
 
-Notes are shared, so the same note can appear in several diagrams and is never duplicated. The scripts add the vault to Obsidian and open it for you.
+Diagram users do not compile Canvas IO. Native tools install its bundled runtime into the selected vault when opening I/O diagrams. Advanced Canvas 7.1.0 is also bundled for the established styles. No runtime downloads or copying from other vaults are required. If Obsidian is open without its debugger, the tool asks you to close it before reopening it with the connection; it never closes Obsidian itself.
 
-## Conventions
+See [the diagram skill](skills/obsidian-canvas-diagram/SKILL.md), [companion source](obsidian-plugins/canvas-io/README.md), and [bundle instructions](vendor/canvas-io/README.md). Script dependencies are `elkjs`, `playwright-core` and `yaml`.
 
-### Universal edge colors
+## Verification and limits
 
-| Color | Meaning |
-|---|---|
-| Red | Error / failure / destructive |
-| Orange | Async / deferred / queued |
-| Yellow | Conditional / decision branch |
-| Green | Success / happy path |
-| Cyan | Data flow |
-| Purple | External / third-party |
+`npm test` runs diagram-tool regressions and companion geometry tests. Native layout tests require an already-open test vault and debugger. Set `OBSIDIAN_VAULT` to its absolute path, then run `npm run test:native-layout`. The companion also includes its 20-check native mouse/persistence interaction script. See [validation details](docs/validation.md).
 
-### Node colors by type
-
-`component` cyan · `function` green · `actor` purple · `data` yellow · `decision` orange · `event` red.
-
-### Node markdown structure
-
-Every node file:
-1. YAML frontmatter (`id`, `title`, `type`, `status`, `source`, `level`, optional `detail`).
-2. **Plain-language paragraph first**: what it is, why it exists and how it works, readable by someone who doesn't code.
-3. Technical sections appropriate to the node type.
-
-No H1 inside the file, because Obsidian renders the filename as the title.
-
-### Detail levels
-
-`/diagram-review` asks what you want a diagram of (the whole app or one feature), then how much detail. `/diagram-plan` asks how much detail. The levels follow the C4 model:
-
-| Choice | What the diagram shows |
-|---|---|
-| Overview | The big pieces: users, programs, data, outside services |
-| Detailed | The parts inside those pieces: services, jobs, screens, tables |
-| Deep dive | Down to the important functions and steps |
-
-Each request makes **one** diagram, with as many boxes as the chosen scope and depth need.
-
-## Automatic layout
-
-The AI decides what the diagram says: notes, arrows and colors. Bundled scripts decide where everything goes:
-
-1. A layout engine (ELK) sorts the boxes into rows that follow the arrows, top to bottom.
-2. An optimizer tidies the layout inside those rows, so arrows don't overlap or run through boxes and labels stay clear. It keeps the top-to-bottom order.
-3. The scripts open the diagram **in Obsidian itself** (through its debug port), score what Obsidian actually drew, and take a screenshot. The AI reviews the screenshot and fixes the structure if needed.
-
-**Line styles:** diagrams use the Obsidian community plugin **Advanced Canvas** (required). An unmodified copy of version 7.1.0 is bundled in `vendor/advanced-canvas/` (GPL-3.0; license and source link included). The scripts install it from there into a project's vault when needed and enable it. They never download it at diagram time, and they never look in other vaults or folders. Line style shows *when* something happens: solid for right away, long dashes for later or queued, dots for a timer, short dashes for planned. A dashed box border means planned and a dotted one means broken or unused.
-
-**Requirements:** Node.js and the Obsidian desktop app. The first run installs two small libraries (`elkjs`, `playwright-core`) into the plugin's `scripts/` folder. The scripts open Obsidian for you. If Obsidian is already open without the debug port, you'll be asked to close it once.
-
-## Installation
-
-In Claude Code, open the plugin manager:
-
-1. Click **Manage Plugins** (or run `/plugins` in the chat box on supported clients).
-2. Go to the **Marketplaces** tab and add:
-   ```
-   TableflipFoundry/claude-plugins
-   ```
-3. Switch to the **Plugins** tab and click **Install** on `obsidian-canvas-diagram`.
-4. Restart your editor / Claude Code session.
-
-Once restarted, the slash commands `/diagram-plan`, `/diagram-review`, and `/diagram-update` are available, and the skill is auto-invoked when a request matches its description.
-
-## Diagram types supported
-
-Architecture · Sequence · State machine · Data model · Dependency / call graph · Decision tree.
-
-The skill recommends a type based on the user's request and announces it before generating, so the user can redirect.
-
-## Status
-
-v0.3: Advanced Canvas line styles and borders (required, auto-installed). v0.2: automatic layout, in-Obsidian review, issues notes, stop check. Top-to-bottom flow only; group boxes are planned.
+Dynamic port swapping, automatic side-drag creation, empty-space node creation through ports, waypoint editing, automatic request/response pairing and line bridges are not implemented. The final refinement supplies cubic attachment and label choices; it does not move cards around obstacles. The author adjusts the relationship layout when the available curves cannot produce a readable result.
 
 ## License
 
-MIT
+Diagram tools and Canvas IO are MIT licensed. The unmodified bundled Advanced Canvas is GPL-3.0; its license and source attribution are in `vendor/advanced-canvas/`.

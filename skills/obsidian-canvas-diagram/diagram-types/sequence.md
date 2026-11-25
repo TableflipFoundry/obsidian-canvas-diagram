@@ -11,7 +11,7 @@
 
 **Time runs downward.** The trigger (user action, incoming order, timer) is the single box at the top. Each arrow goes from a step to the step after it. Error paths branch sideways and down to their own outcome boxes. Don't loop them back into the main line unless the code really retries.
 
-A retry or "go back" is an upward arrow. That's fine when it's real, but keep it to one or two per diagram.
+A retry or "go back" is an upward arrow when it is a real transition. Keep necessary paths, choose the requested level of detail, and use declared main paths so reverse edges do not determine the layout. I/O returns can use separate ports; label what travels and verify the actual curves and labels.
 
 ## Keep it readable
 

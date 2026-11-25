@@ -1,0 +1,13 @@
+import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+const destination = new URL('../../../vendor/canvas-io/', import.meta.url);
+await mkdir(destination, { recursive: true });
+await build({entryPoints:['src/main.ts'],bundle:true,platform:'browser',format:'cjs',target:'es2022',external:['obsidian'],outfile:fileURLToPath(new URL('main.js',destination))});
+await build({entryPoints:['src/geometry.ts'],bundle:true,format:'esm',target:'es2022',outfile:fileURLToPath(new URL('geometry.mjs',destination))});
+for(const file of ['manifest.json','styles.css','LICENSE']) await copyFile(file,new URL(file,destination));
+const checksums={};
+for(const file of ['main.js','manifest.json','styles.css','geometry.mjs']) checksums[file]=createHash('sha256').update(await readFile(new URL(file,destination))).digest('hex');
+await writeFile(new URL('checksums.json',destination),JSON.stringify(checksums,null,2)+'\n');
+console.log('Bundled Canvas IO runtime and shared geometry in vendor/canvas-io.');

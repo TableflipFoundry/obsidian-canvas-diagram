@@ -1,3 +1,4 @@
+import { parseNote } from './notes.mjs';
 // THE LEGEND: the one fixed visual vocabulary for every diagram.
 // Everything that checks or draws colors and styles reads from here:
 // pipeline.mjs (rejects anything off-legend, then adds a legend panel),
@@ -51,12 +52,7 @@ export const isLegendItem = x => typeof x?.id === 'string' && x.id.startsWith('l
 
 /** The `type` in a note's frontmatter, or null. */
 export function noteType(vault, file) {
-  try {
-    const t = fs.readFileSync(path.join(vault, file), 'utf8').replace(/^﻿/, '');
-    const m = t.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    const tm = m && m[1].match(/^type:\s*(\S+)/m);
-    return tm ? tm[1].trim() : null;
-  } catch { return null; }
+  try { const result = parseNote(fs.readFileSync(path.join(vault,file),'utf8')); return result.errors.length ? null : result.fm.type ?? null; } catch { return null; }
 }
 
 /** Everything in the canvas that isn't on the legend. Returns [{ id, msg }]. */

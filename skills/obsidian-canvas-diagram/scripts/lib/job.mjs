@@ -28,8 +28,23 @@ export function updateJob(vaultRoot, patch) {
   return next;
 }
 
+/**
+ * Hash of what a canvas says (its boxes and arrows), not of the bytes.
+ * Obsidian re-saves an open canvas in its own formatting, and Advanced Canvas
+ * adds a `metadata` block, so a byte hash of a freshly laid-out file never
+ * matched. Falls back to a byte hash for anything that isn't a canvas.
+ */
 export function fileHash(file) {
-  return crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex');
+  const raw = fs.readFileSync(file);
+  try {
+    const j = JSON.parse(raw.toString('utf8').replace(/^﻿/, ''));
+    const canon = v => Array.isArray(v) ? v.map(canon)
+      : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map(k => [k, canon(v[k])])) : v;
+    const byId = a => [...(a ?? [])].sort((p, q) => String(p.id).localeCompare(String(q.id)));
+    return crypto.createHash('sha1').update(JSON.stringify(canon({ nodes: byId(j.nodes), edges: byId(j.edges) }))).digest('hex');
+  } catch {
+    return crypto.createHash('sha1').update(raw).digest('hex');
+  }
 }
 
 /** Same rule as lib/obsidian.mjs findVaultRoot, without creating anything. */

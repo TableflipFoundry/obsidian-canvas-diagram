@@ -1,10 +1,12 @@
 ---
-description: Update an existing diagram, checking it against the current code first, then re-running the automatic layout.
+description: Update a diagram within the requested scope, preserving approved geometry and verifying changes in Obsidian.
 ---
 
 The user wants to change an existing diagram. Use the **obsidian-canvas-diagram** skill and follow its SKILL.md for notes, canvas format, colors, layout and review.
 
 The argument: $ARGUMENTS
+
+Read the shared [output-quality workflow](../skills/obsidian-canvas-diagram/references/output-quality.md) and [I/O ports](../skills/obsidian-canvas-diagram/references/io-ports.md). Reuse scope, detail and grouping already established in the conversation; do not repeat an approval or interview the user has already completed. New diagrams use I/O ports. Saved diagrams are converted or rearranged only when requested. A score alone never replaces whole-diagram and readable closeup review.
 
 ## 0. Pick the diagram (always ask unless the argument names one)
 
@@ -21,7 +23,9 @@ Start the job on this canvas (SKILL.md, "The diagram job (stop check)"). Open th
 
 ## 2. Check it against the code
 
-If **any** note has `status: exists` or a `source`, run a drift check before making the user's changes:
+For a requested code/content refresh, run the following drift check if notes have `status: exists` or a `source`. For an explicitly presentation-only request (ports, one edge, labels or layout), preserve content and relationships; read source only if needed to resolve a claimed relationship. Do not turn a small visual correction into an unrequested full audit or a new approval round.
+
+For a code/content refresh:
 
 1. For each note with a `source`, read the file.
 2. For notes without a `source` that should exist by now, search the codebase for them.
@@ -31,7 +35,7 @@ If **any** note has `status: exists` or a `source`, run a drift check before mak
    - arrows that no longer match what the code does,
    - note text or technical sections (Inputs, Calls, Readers…) that no longer match.
 4. **Report the drift as a plain list.** Don't fix anything yet. Also check the diagram's issues note (`<name>-issues.md`) if there is one: mark issues that are now fixed in the code, and add any new ones you found (SKILL.md, "Issues found while reviewing").
-5. Wait for the user to choose what to update.
+5. Apply changes already covered by the user's request. Ask only about unresolved scope or substantive findings outside that request.
 
 If the diagram is all `status: planned`, skip this and go straight to the requested changes.
 
@@ -55,6 +59,6 @@ Tell the user in one line that the diagram was converted to the current legend.
 
 ## 5. Lay out, review, report
 
-Run the pipeline on the changed canvas, review the screenshot, fix and repeat, then record the review (SKILL.md, "Layout and review"). The whole diagram is laid out again, so boxes may move.
+Preserve the user's manual arrangement and the existing `.layout.json` plan. For a requested new arrangement, update the semantic plan and run `pipeline.mjs <canvas> --relayout`. For an authorized I/O attachment/label cleanup use `--refine-io`; explicit conversion uses `--io`. Otherwise preserve the saved geometry. Then finish the relationship-first pass with whole-diagram and readable close-up review. For geometry the user intentionally refined, use `verify.mjs` to check it without reflow. Keep helpers close to callers and shared-data references near their uses. Record `job.mjs reviewed ... --relationships` after the final verification (SKILL.md, "Layout and review"). Never undo cleanup with an unnecessary global reflow.
 
 Report: what changed, drift findings, any forks, and anything still unclear.

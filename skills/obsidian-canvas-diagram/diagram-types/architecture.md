@@ -17,7 +17,7 @@ Every arrow starts where the thing comes from and ends where it goes (SKILL.md, 
 
 The layout puts each `data` box beside the step that reads or writes it, with a flat arrow, so direction never changes where a store sits. Don't flip arrows for looks.
 
-Draw a reply only when it tells the reader something ("callback", "webhook"). A normal request and its answer need just the request arrow.
+At overview level, a request arrow and a note can be enough. In a component diagram, draw a distinct return edge when it helps explain the interaction and the code proves it. For example, a category request goes Routes Output to Aspects Input; returned questions go Aspects Output to Routes Input. Do not invent returns, and do not remove a necessary reverse relationship to avoid a cycle. Declare the main `spines` path and use the I/O finishing and review workflow.
 
 ## Keep it readable
 

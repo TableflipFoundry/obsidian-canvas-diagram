@@ -11,7 +11,7 @@
 
 Point arrows from **caller to callee**, so callers sit above what they call. For "what depends on X", do the same: the callers of X end up above it.
 
-Shared helpers called from many places sink to the bottom on their own, because many arrows arrive there.
+Place a helper immediately beside its caller when that best explains the relationship. A shared helper belongs near its users, not automatically in a remote bottom row. Use separate straight caller paths and a semantic plan. I/O ports express attachment direction; in this diagram type an edge still means caller-to-callee or dependency, not an invented return-data interaction.
 
 ## Keep it readable
 

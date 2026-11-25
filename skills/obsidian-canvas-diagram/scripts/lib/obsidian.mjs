@@ -161,6 +161,12 @@ export async function ensureAdvancedCanvas(page, vaultRoot) {
 
 /** Opens a canvas (path relative to the vault) in the active tab and zooms to fit. */
 export async function openCanvas(page, relPath) {
+  const vaultRoot = await page.evaluate(() => app.vault.adapter.basePath);
+  const data = JSON.parse(fs.readFileSync(path.join(vaultRoot, relPath), 'utf8').replace(/^\uFEFF/, ''));
+  if ((data.edges ?? []).some(e => e.canvasIO?.version === 1)) {
+    const { ensureCanvasIO } = await import('./canvas-io.mjs');
+    await ensureCanvasIO(page, vaultRoot);
+  }
   const res = await page.evaluate(async (p) => {
     // Obsidian may not have indexed a just-written file yet
     for (let i = 0; i < 20 && !app.vault.getAbstractFileByPath(p); i++) await new Promise(r => setTimeout(r, 250));
@@ -182,6 +188,23 @@ export async function openCanvas(page, relPath) {
   }, relPath.split(path.sep).join('/'));
   if (res.error) throw new Error(res.error);
   return res;
+}
+
+/**
+ * Runs fn with Obsidian's page pretending to be width x height pixels (the
+ * window itself doesn't change), so a screenshot can be any size or shape,
+ * for example tall for a tall diagram. The page is put back afterwards.
+ */
+export async function withViewport(page, width, height, fn) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+    await page.waitForTimeout(500);
+    return await fn(cdp);
+  } finally {
+    await cdp.send('Emulation.clearDeviceMetricsOverride').catch(() => {});
+    await cdp.detach().catch(() => {});
+  }
 }
 
 /** Vault-relative path for an absolute file path. */

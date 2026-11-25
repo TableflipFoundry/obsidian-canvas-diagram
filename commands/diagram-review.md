@@ -1,10 +1,12 @@
 ---
-description: Diagram existing code. Asks how much detail you want, then reviews the codebase and builds linked, auto-laid-out Obsidian diagrams.
+description: Read existing code and create one documented I/O diagram with preserved relationships, nearby helpers and native visual review.
 ---
 
 The user wants diagrams of code that already exists. Use the **obsidian-canvas-diagram** skill and follow its SKILL.md for notes, canvas format, colors, layout and review. This file covers how the review *starts* and what it produces.
 
 The argument (may be empty): $ARGUMENTS
+
+Read the shared [output-quality workflow](../skills/obsidian-canvas-diagram/references/output-quality.md) and [I/O ports](../skills/obsidian-canvas-diagram/references/io-ports.md). Reuse scope, detail and grouping already established in the conversation; do not repeat an approval or interview the user has already completed. New diagrams use I/O ports. Saved diagrams are converted or rearranged only when requested. A score alone never replaces whole-diagram and readable closeup review.
 
 ## Rules for this mode
 
@@ -50,6 +52,8 @@ If you can't ask (AskUserQuestion isn't available, or you're running without a p
 
    > I found 7 main parts: the desktop app, the screens, the server, three databases, and the eBay/Shopify connections. The diagram will show those, top to bottom from the user down to the outside services. Sound right, or should I change anything?
 
+   At Detailed and Deep dive level with more than about 25 boxes, the plan also lists the **groups** (SKILL.md, "Groups"): each feature with the boxes that go in it, and what stays outside. Groups make or break a big diagram, so get the user's OK on them here.
+
    Adjust to what they say. The plan comes after exploring but before the detailed reading in step 3. If that reading changes the plan in a way the user would care about (a part you listed doesn't really exist, or a big one was missed), tell them in a line and carry on.
 
 ## 3. Build
@@ -60,8 +64,8 @@ First, create `Diagrams/` and `Diagrams/nodes/` if they don't exist (SKILL.md, "
 2. **Reuse existing notes** using the notes index, and link new notes to the bigger notes they're part of (SKILL.md, "Reuse").
 3. **Write the notes**: what, why, how in plain words, then the technical sections from the real code (real function names, callers, tables). Link notes with wikilinks. If a box's subject already has its own diagram in the vault, add the `detail:` field and the `Detail diagram:` link.
 4. **Write the issues note** for everything broken, unused, duplicated or risky you found (SKILL.md, "Issues found while reviewing"). Keep a running list from the very start of exploring, so nothing gets lost.
-5. **Write the canvas** at `Diagrams/<name>/<name>.canvas`. Positions at 0. Arrows point the way things flow. Add the red issues box, with no arrows.
-6. **Run the pipeline, review the screenshot, fix, repeat** (SKILL.md, "Layout and review"). Up to 3 rounds. Record your review with `job.mjs reviewed` after the last round.
+5. **Write the canvas and layout plan** at `Diagrams/<name>/<name>.canvas` and `<name>.layout.json`. Identify the main paths, put supporting helpers beside their callers, and use local references for shared data when needed. Follow SKILL.md's Relationship-first layout reference. Arrows point the way things flow. Add the red issues box, with no arrows.
+6. **Run the pipeline and finish the visual cleanup** (SKILL.md, "Layout and review"). Inspect the whole diagram and readable close-ups of every section; check proximity and the story, not just scores. Up to 3 rounds. Record your review with `job.mjs reviewed ... --relationships` after the last verified round. This pass is part of the original request, not optional follow-up work.
 
 For a long job, give the user a one-line progress update now and then ("Notes written, 22 boxes. Running the layout.").
 

@@ -14,6 +14,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readJob, writeJob, markerPath, fileHash } from './lib/job.mjs';
 import { legendProblems, isLegendItem } from './lib/legend.mjs';
+import { renderProblems, reviewEvidenceProblems } from './lib/render-quality.mjs';
+import { parseNote } from './lib/notes.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SECTIONS = {
@@ -28,13 +30,6 @@ const SECTIONS = {
   event: ['Trigger', 'Payload', 'Subscribers'],
 };
 
-function parseNote(text) {
-  text = text.replace(/^﻿/, '');
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  const fm = {};
-  if (m) for (const line of m[1].split(/\r?\n/)) { const kv = line.match(/^(\w+):\s*(.*)$/); if (kv) fm[kv[1]] = kv[2].replace(/\s+#.*$/, '').trim(); }
-  return { fm, hasFront: !!m, body: m ? text.slice(m[0].length) : text };
-}
 
 function vaultFiles(vault) {
   const names = new Set(), paths = new Set();
@@ -84,11 +79,17 @@ export function runChecks(vault, job) {
   // layout must have run on the current version of the canvas, and been checked in Obsidian
   if (!job.layout) fail('layout', `The layout hasn't been run. Run: ${pipelineCmd}`);
   else {
-    if (job.layout.hash !== fileHash(canvasFile)) fail('layout', `The diagram changed after the last layout. Run again: ${pipelineCmd}`);
+    if (job.layout.hash !== fileHash(canvasFile)) fail('layout', `The diagram changed after the last check. For an intentional visual cleanup, preserve it with: node "${path.join(here, 'verify.mjs')}" "${canvasFile}". For a new automatic layout run: ${pipelineCmd}`);
     else if (!job.layout.checked) fail('obsidian-check', `The layout ran but the Obsidian check didn't finish (${job.layout.checkError ?? 'unknown error'}). If Obsidian is open without the debug port, ask the user to close it, then run: ${pipelineCmd}`);
   }
 
   // notes written or changed during this job must follow the standard; links must resolve
+  if (job.reviewVersion >= 2) {
+    if (job.layout?.checked && !job.layout.quality?.issues)
+      fail('render-report', `No native rendering quality report was recorded. Run: node "${path.join(here, 'verify.mjs')}" "${canvasFile}"`);
+    for (const p of renderProblems(job.layout?.quality)) fail(p.id, p.msg);
+  }
+
   const started = Date.parse(job.startedAt);
   const files = vaultFiles(vault);
   for (const n of fileNodes) {
@@ -96,9 +97,9 @@ export function runChecks(vault, job) {
     if (!fs.existsSync(p) || !p.endsWith('.md')) continue;
     if (fs.statSync(p).mtimeMs < started - 2000) continue; // reused, untouched: not this job's work
     const rel = n.file;
-    const { fm, hasFront, body } = parseNote(fs.readFileSync(p, 'utf8'));
+    const { fm, hasFront, body, errors } = parseNote(fs.readFileSync(p, 'utf8'));
     const isIssues = /-issues\.md$/i.test(rel);
-    const problems = [];
+    const problems = [...errors];
     if (!hasFront) problems.push('it has no frontmatter block at the top');
     for (const k of ['id', 'title', 'type', 'status', 'level']) if (!fm[k]) problems.push(`frontmatter is missing "${k}"`);
     // people and outside services have no code of their own, so no source is required
@@ -134,8 +135,11 @@ export function runChecks(vault, job) {
   }
 
   // the agent must have looked at the latest screenshot and recorded what it checked
+  for (const problem of reviewEvidenceProblems(job,fileHash(canvasFile),(canvas.edges ?? []).filter(e=>!isLegendItem(e)).length)) fail(problem.id,problem.msg);
   const reviewedAfterLayout = job.review && job.layout && Date.parse(job.review.at) >= Date.parse(job.layout.at);
   if (!reviewedAfterLayout) fail('review', `Open the latest screenshot with the Read tool, check it against SKILL.md "Review", then record what you checked: node "${path.join(here, 'job.mjs')}" reviewed "${canvasFile}" "<flow, arrows, labels, level: what you saw and changed>"`);
+  if (job.reviewVersion >= 2 && !job.review?.relationshipsChecked)
+    fail('relationship-review', 'Review the whole diagram and readable close-ups: straight main paths, helpers next to callers, local shared-data references, and preserved subjects/connections. Then record job.mjs reviewed <canvas> "<what you checked>" --relationships. A low collision score alone does not pass this review.');
 
   return { failures, canvas };
 }

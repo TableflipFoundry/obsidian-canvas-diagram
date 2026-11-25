@@ -1,0 +1,26 @@
+.canvas-io-ports { position: absolute; inset: 0; pointer-events: none; z-index: 20; }
+.canvas-io-port {
+  --io-color: var(--color-cyan, #25b9d2);
+  position: absolute; transform: translate(-50%, -50%);
+  pointer-events: auto; width: 20px; height: 20px; min-width: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 2px solid var(--io-color);
+  background: var(--background-primary); color: var(--io-color);
+  font: 700 11px/1 var(--font-interface); box-shadow: none; cursor: crosshair;
+  touch-action: none; opacity: .85;
+}
+.canvas-io-output { --io-color: var(--color-orange, #e99b48); }
+.canvas-io-port:hover, .canvas-io-port:focus-visible {
+  opacity: 1; background: var(--io-color); color: var(--background-primary);
+  outline: 2px solid var(--background-primary); outline-offset: 1px;
+}
+.canvas-io-ports.is-readonly .canvas-io-port { pointer-events: none; opacity: .45; }
+.canvas-io-seeking-input .canvas-io-input,
+.canvas-io-seeking-output .canvas-io-output { box-shadow: 0 0 0 4px color-mix(in srgb, var(--io-color) 22%, transparent); opacity: 1; }
+.canvas-io-preview { fill: none; stroke: var(--color-orange, #e99b48); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.canvas-io-edge-ends .canvas-path-end { pointer-events: all; cursor: grab; }
+/* Native hover handles live in Canvas's separate selection/resize layer. */
+.canvas-io-active .canvas-node-connection-point {
+  display: none !important;
+  pointer-events: none !important;
+}
