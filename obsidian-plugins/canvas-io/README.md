@@ -2,7 +2,7 @@
 
 The first-party Obsidian desktop companion for obsidian-canvas-diagram. Its source, build and tests are independent of the diagram-generation scripts.
 
-Each Canvas card has two ports per side: **I** for input (cyan) and **O** for output (orange). The order mirrors across opposite sides so requests and responses can follow separate, parallel lanes.
+I/O cards have two ports per side: **I** for input (cyan) and **O** for output (orange). Standard cards retain Obsidian's original four ports. The I/O order mirrors across opposite sides so requests and responses can follow separate, parallel lanes.
 
 ```text
                I     O
@@ -14,6 +14,8 @@ Each Canvas card has two ports per side: **I** for input (cyan) and **O** for ou
 ```
 
 ## Use
+
+Right-click blank Canvas space for **Add I/O card**; the existing **Add card** still creates a standard card. Right-click a card to choose **Use I/O card** or **Use standard card**. Markdown-backed cards default to I/O. Ordinary text/media/web cards default to standard. Old legends are standard automatically, and existing unmarked hand-drawn I/O cards retain their mode through saved I/O connections. Explicit mode choices persist as `canvasIO.ports: true/false` and support undo/redo. Mixed connections attach at each endpoint's chosen mode.
 
 Drag an output port to an input port. You can also click the two ports, or focus them with Tab and press Enter or Space. Starting at an input and finishing at an output is supported; the saved arrow always runs Output → Input. Press Escape to cancel. Drag a connection's arrowhead to a different input to reconnect it.
 
@@ -65,4 +67,4 @@ node scripts/verify-native.mjs --without-advanced
 
 The script enables Canvas IO, temporarily opens a disposable three-card canvas, sends real pointer input, checks persistence and undo/redo, and removes the test canvas afterward. It returns to the previous canvas. The second command temporarily disables Advanced Canvas and restores its prior enabled state. It never closes Obsidian. These development scripts use the local debugger; the installed plugin does not.
 
-No screenshots or backups are produced by default. `--screenshot` explicitly saves `native-debug.png` for visual inspection; delete it afterward. See [VERIFICATION.md](VERIFICATION.md) for the tested versions and results.
+Run `node scripts/verify-cards.mjs` with the same test-vault environment for 16 additional native checks of the actual menus, creation, mode conversion, native connector visibility, mixed-mode attachment and reopen persistence. No screenshots or backups are produced by default. `--screenshot` explicitly saves temporary inspection images; delete them afterward. See [VERIFICATION.md](VERIFICATION.md) for tested versions and results.

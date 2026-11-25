@@ -1,5 +1,15 @@
 # Release notes
 
+## 0.6.1 — Standard cards and I/O cards
+
+- Adds **Add I/O card** alongside Obsidian's existing **Add card** command.
+- Adds **Use I/O card / Use standard card** to each ordinary card's context menu. Choices persist and support native undo/redo; creation is one undo step.
+- Ordinary text, image and web cards default to native four-port behavior. Markdown-backed cards default to I/O. Existing hand-drawn I/O cards remain compatible.
+- Old generated legends stay standard without rewriting their Canvas files. Native center connectors are hidden only on I/O cards.
+- Mixed-mode I/O connections use each endpoint's card mode. The companion and layout tools share this geometry.
+- An enabled older companion is upgraded when a diagram is opened through the tools, even if that diagram has only ordinary edges.
+- Includes 16 native menu/card-mode checks and fixes the debugger's false detection of unrelated isolated Obsidian profiles.
+
 ## 0.6.0 — I/O diagrams and relationship-first finishing
 
 - Bundles the editable Canvas IO desktop companion and built runtime. Native tools install it for I/O diagrams without a download or build at diagram time.

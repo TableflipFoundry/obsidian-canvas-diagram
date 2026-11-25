@@ -1,7 +1,7 @@
 {
   "id": "canvas-io",
   "name": "Canvas IO",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "minAppVersion": "1.15.1",
   "description": "Separate input and output connection ports on every side of native Canvas cards.",
   "author": "Ty",

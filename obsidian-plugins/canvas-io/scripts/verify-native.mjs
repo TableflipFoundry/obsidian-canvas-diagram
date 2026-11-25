@@ -22,9 +22,9 @@ try {
     const old=app.vault.getAbstractFileByPath(${JSON.stringify(sandbox)});
     if(old) throw new Error('Sandbox already exists; refusing to overwrite');
     const data={nodes:[
-      {id:'a',type:'text',text:'Browser\\nSend requests; receive responses.',x:0,y:0,width:300,height:200},
-      {id:'b',type:'text',text:'Routes\\nReceive requests; return results.',x:600,y:0,width:300,height:200},
-      {id:'c',type:'text',text:'Aspects\\nReceive a category; return its questions.',x:600,y:500,width:300,height:200}
+      {id:'a',type:'text',canvasIO:{ports:true},text:'Browser\\nSend requests; receive responses.',x:0,y:0,width:300,height:200},
+      {id:'b',type:'text',canvasIO:{ports:true},text:'Routes\\nReceive requests; return results.',x:600,y:0,width:300,height:200},
+      {id:'c',type:'text',canvasIO:{ports:true},text:'Aspects\\nReceive a category; return its questions.',x:600,y:500,width:300,height:200}
     ],edges:[]};
     const file=await app.vault.create(${JSON.stringify(sandbox)},JSON.stringify(data));
     const leaf=app.workspace.getLeaf('tab'); await leaf.openFile(file); app.workspace.setActiveLeaf(leaf,{focus:true});

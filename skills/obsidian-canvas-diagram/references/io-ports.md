@@ -2,6 +2,8 @@
 
 Canvas IO is the bundled Obsidian desktop companion. It provides exactly two ports per card side: Input and Output. Top and left have I before O; bottom and right reverse that order. Edges connect Output to Input. Positions remain fixed in this version; do not claim dynamic port swapping or obstacle-aware routing.
 
+This applies to **I/O cards**, not all Canvas cards. Standard cards retain Obsidian's four original connectors. Blank-space **Add card** creates a standard card; **Add I/O card** creates an explicitly marked I/O card. Per-card context menus switch between modes, with native history and persistence. Markdown-backed cards default to I/O; other unmarked cards default to standard unless they already participate in saved legacy I/O edges. Generated `legend-` cards are always standard, including old legends without opt-out metadata. Preserve explicit `canvasIO.ports: false` choices. Card mode and edge I/O metadata are separate; mixed connections follow each endpoint's mode.
+
 New zero-position diagrams use I/O edges by default. Saved diagrams retain their existing mode and geometry unless the user requests conversion. To convert deliberately without changing card positions:
 
 ```sh

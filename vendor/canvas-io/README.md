@@ -1,6 +1,6 @@
 # Canvas IO bundle
 
-First-party Obsidian desktop companion, version 0.1.1, MIT licensed. Editable source and tests: [obsidian-plugins/canvas-io](../../obsidian-plugins/canvas-io/README.md).
+First-party Obsidian desktop companion, version 0.2.0, MIT licensed. Editable source and tests: [obsidian-plugins/canvas-io](../../obsidian-plugins/canvas-io/README.md). Standard cards keep native ports; I/O cards have explicit input/output ports.
 
 The diagram tools install this local bundle into the target vault when opening an I/O diagram. No download or compilation is required for diagram users. Ordinary diagrams do not trigger installation. Existing saved diagrams are not converted merely by opening them.
 

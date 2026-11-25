@@ -79,6 +79,20 @@ function connectionData(id, fromNode, fromSide, toNode, toSide) {
   };
 }
 
+// src/cards.ts
+function isIOCard(data, legacyIOConnection = false) {
+  if (data.type === "group" || String(data.id ?? "").startsWith("legend-")) return false;
+  if (typeof data.canvasIO?.ports === "boolean") return data.canvasIO.ports;
+  return data.type === "file" && /\.md$/i.test(data.file ?? "") || legacyIOConnection;
+}
+function cardAnchor(box, side, kind, io) {
+  if (io) return anchorPoint(box, side, kind);
+  return {
+    x: side === "left" ? box.minX : side === "right" ? box.maxX : (box.minX + box.maxX) / 2,
+    y: side === "top" ? box.minY : side === "bottom" ? box.maxY : (box.minY + box.maxY) / 2
+  };
+}
+
 // src/main.ts
 var SVG = "http://www.w3.org/2000/svg";
 var ROTATION = { top: 180, right: 270, bottom: 0, left: 90 };
@@ -89,11 +103,17 @@ var CanvasIO = class extends import_obsidian.Plugin {
   ports = /* @__PURE__ */ new WeakMap();
   restorers = /* @__PURE__ */ new Map();
   gesture;
+  targets = /* @__PURE__ */ new Map();
   onload() {
     this.registerEvent(this.app.workspace.on("layout-change", () => this.scan()));
     this.app.workspace.onLayoutReady(() => this.scan());
     this.registerInterval(window.setInterval(() => this.scan(), 250));
     this.addCommand({ id: "cancel-connection", name: "Cancel port connection", callback: () => this.cancel() });
+    this.registerEvent(this.app.workspace.on("canvas:node-menu", ((menu, node) => {
+      if (!node?.canvas || node.getData().type === "group" || node.id.startsWith("legend-")) return;
+      const io = this.wantsIO(node);
+      menu.addItem((item) => item.setTitle(io ? "Use standard card" : "Use I/O card").setIcon("git-compare-arrows").setDisabled(node.canvas.readonly).onClick(() => this.setCardMode(node, !io)));
+    })));
   }
   onunload() {
     this.cancel();
@@ -103,6 +123,7 @@ var CanvasIO = class extends import_obsidian.Plugin {
       node.nodeEl.classList.remove("canvas-io-node");
     }
     for (const canvas of this.canvases) canvas.wrapperEl.classList.remove("canvas-io-active");
+    for (const canvas of this.canvases) canvas.nodeInteractionLayer.interactionEl.classList.remove("canvas-io-hide-native");
     for (const edge of this.edges) if (edge.canvas.edges.get(edge.id) === edge) edge.render();
   }
   wrap(object, key, make) {
@@ -132,6 +153,16 @@ var CanvasIO = class extends import_obsidian.Plugin {
       if (!this.canvases.has(canvas)) {
         this.canvases.add(canvas);
         canvas.wrapperEl.classList.add("canvas-io-active");
+        this.wrap(canvas, "showCreationMenu", (original) => (menu, point, size) => {
+          original.call(canvas, menu, point, size);
+          menu.addItem((item) => item.setTitle("Add I/O card").setSection("create").setIcon("git-compare-arrows").setDisabled(canvas.readonly).onClick(() => this.addIOCard(canvas, point)));
+        });
+        const layer = canvas.nodeInteractionLayer;
+        this.wrap(layer, "setTarget", (original) => (node) => {
+          original.call(layer, node);
+          this.targets.set(canvas, node);
+          this.syncNativeHandles(canvas);
+        });
         const capture = (event) => {
           if (event.button !== 0 || canvas.readonly) return;
           const port = this.portAt(event, canvas);
@@ -154,6 +185,7 @@ var CanvasIO = class extends import_obsidian.Plugin {
       }
       for (const node of canvas.nodes.values()) this.mountNode(node);
       for (const edge of canvas.edges.values()) this.mountEdge(edge);
+      this.syncNativeHandles(canvas);
     }
     for (const [node, layer] of this.nodes) {
       if (!active.has(node.canvas) || node.canvas.nodes.get(node.id) !== node) {
@@ -171,6 +203,12 @@ var CanvasIO = class extends import_obsidian.Plugin {
       this.edges.delete(edge);
     }
     for (const canvas of this.canvases) if (!active.has(canvas)) {
+      this.restore(canvas.nodeInteractionLayer);
+      this.targets.delete(canvas);
+      canvas.nodeInteractionLayer.interactionEl.classList.remove("canvas-io-hide-native");
+      this.restore(canvas.nodeInteractionLayer);
+      this.targets.delete(canvas);
+      canvas.nodeInteractionLayer.interactionEl.classList.remove("canvas-io-hide-native");
       this.restore(canvas);
       canvas.wrapperEl.classList.remove("canvas-io-active");
       this.canvases.delete(canvas);
@@ -178,7 +216,13 @@ var CanvasIO = class extends import_obsidian.Plugin {
     if (this.gesture && (!active.has(this.gesture.canvas) || this.gesture.canvas.readonly || this.gesture.canvas.nodes.get(this.gesture.fixed.node.id) !== this.gesture.fixed.node)) this.cancel();
   }
   mountNode(node) {
-    if (!node.nodeEl || node.getData().type === "group" || node.getData().canvasIO?.ports === false) return;
+    if (!node.nodeEl) return;
+    if (!this.wantsIO(node)) {
+      this.nodes.get(node)?.remove();
+      node.nodeEl.classList.remove("canvas-io-node");
+      if (this.nodes.delete(node)) this.restore(node);
+      return;
+    }
     const existing = this.nodes.get(node);
     if (existing) {
       if (existing.parentElement !== node.nodeEl) node.nodeEl.append(existing);
@@ -228,6 +272,39 @@ var CanvasIO = class extends import_obsidian.Plugin {
       this.mountNode(node);
     });
     this.positionPorts(node, layer);
+  }
+  wantsIO(node) {
+    const legacy = [...node.canvas.edges.values()].some((edge) => isIO(edge.getData()) && (edge.from.node === node || edge.to.node === node));
+    return isIOCard({ ...node.getData(), id: node.id }, legacy);
+  }
+  syncNativeHandles(canvas) {
+    const target = this.targets.get(canvas) ?? canvas.nodeInteractionLayer.target;
+    canvas.nodeInteractionLayer.interactionEl.classList.toggle("canvas-io-hide-native", !!target && this.wantsIO(target));
+  }
+  setCardMode(node, io) {
+    const canvas = node.canvas;
+    if (canvas.readonly) return;
+    canvas.requestPushHistory?.run?.();
+    this.cancel();
+    const data = node.getData();
+    node.setData({ ...data, canvasIO: { ...data.canvasIO, ports: io } });
+    this.mountNode(node);
+    this.syncNativeHandles(canvas);
+    for (const edge of canvas.edges.values()) if (edge.from.node === node || edge.to.node === node) edge.render();
+    canvas.requestPushHistory?.cancel?.();
+    canvas.pushHistory(canvas.getData());
+    canvas.view.requestSave();
+  }
+  addIOCard(canvas, point) {
+    if (canvas.readonly) return;
+    canvas.requestPushHistory?.run?.();
+    const node = canvas.createTextNode({ pos: point, size: { width: 320, height: 200 }, text: "", focus: false });
+    const data = node.getData();
+    node.setData({ ...data, canvasIO: { ...data.canvasIO, ports: true } });
+    this.mountNode(node);
+    canvas.requestPushHistory?.cancel?.();
+    canvas.pushHistory(canvas.getData());
+    canvas.view.requestSave();
   }
   positionPorts(node, layer) {
     const box = node.getBBox();
@@ -284,8 +361,8 @@ var CanvasIO = class extends import_obsidian.Plugin {
       event.stopPropagation();
       if (edge.canvas.readonly) return;
       const point = edge.canvas.posFromClient({ x: event.clientX, y: event.clientY });
-      const from = anchorPoint(edge.from.node.getBBox(), edge.from.side, "output");
-      const to = anchorPoint(edge.to.node.getBBox(), edge.to.side, "input");
+      const from = this.endPoint(edge.from.node, edge.from.side, "output");
+      const to = this.endPoint(edge.to.node, edge.to.side, "input");
       const movingFrom = Math.hypot(point.x - from.x, point.y - from.y) < Math.hypot(point.x - to.x, point.y - to.y);
       this.begin(movingFrom ? { node: edge.to.node, side: edge.to.side, kind: "input" } : { node: edge.from.node, side: edge.from.side, kind: "output" }, edge);
     });
@@ -307,11 +384,14 @@ var CanvasIO = class extends import_obsidian.Plugin {
   }
   edgeGeometry(edge) {
     return curve(
-      anchorPoint(edge.from.node.getBBox(), edge.from.side, "output"),
+      this.endPoint(edge.from.node, edge.from.side, "output"),
       edge.from.side,
-      anchorPoint(edge.to.node.getBBox(), edge.to.side, "input"),
+      this.endPoint(edge.to.node, edge.to.side, "input"),
       edge.to.side
     );
+  }
+  endPoint(node, side, kind) {
+    return cardAnchor(node.getBBox(), side, kind, this.wantsIO(node));
   }
   begin(fixed, edge) {
     this.cancel();

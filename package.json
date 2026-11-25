@@ -1,9 +1,11 @@
 {
   "name": "obsidian-canvas-diagram",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.18.0" },
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "setup": "npm ci --prefix skills/obsidian-canvas-diagram/scripts && npm ci --prefix obsidian-plugins/canvas-io",
     "test": "npm test --prefix skills/obsidian-canvas-diagram/scripts && npm test --prefix obsidian-plugins/canvas-io",

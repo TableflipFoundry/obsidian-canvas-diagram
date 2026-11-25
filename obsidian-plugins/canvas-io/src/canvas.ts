@@ -1,4 +1,6 @@
 import type { Box, Point, Side } from './geometry';
+import type {CardData} from './cards';
+import type {Menu} from 'obsidian';
 // Native Canvas has no public port API. Keep its private surface isolated here.
 export interface EdgeData {
   id: string; fromNode: string; toNode: string; fromSide: Side; toSide: Side;
@@ -6,7 +8,8 @@ export interface EdgeData {
 }
 export interface Node {
   id: string; canvas: Canvas; nodeEl: HTMLElement;
-  getBBox(): Box; getData(): { type: string; canvasIO?: { ports?: boolean } };
+  getBBox(): Box; getData(): CardData;
+  setData(data:CardData): void;
   render(): void;
   onConnectionPointerdown(event: PointerEvent, side: Side): void;
 }
@@ -32,6 +35,10 @@ export interface Canvas {
   getData(): { nodes: unknown[]; edges: EdgeData[] };
   importData(data: { nodes: unknown[]; edges: EdgeData[] }, clear?: boolean): void;
   pushHistory(data: unknown): void;
+  requestPushHistory?:{run?():void;cancel?():void};
   addNode(node: Node): void; addEdge(edge: Edge): void;
+  createTextNode(options:{pos:Point;size:{width:number;height:number};text?:string;focus?:boolean}):Node;
+  nodeInteractionLayer:{interactionEl:HTMLElement;target?:Node|null;setTarget(node:Node|null):void};
+  showCreationMenu(menu:Menu,point:Point,size?:{width:number;height:number}):void;
   posFromClient(pos: Point): Point;
 }

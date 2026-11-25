@@ -5,7 +5,7 @@
 // we start it that way. If it is running WITHOUT the port, we can't attach and
 // the user has to close it first (we never kill it ourselves).
 import { chromium } from 'playwright-core';
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execSync, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -57,11 +57,15 @@ function obsidianExe() {
 
 function obsidianRunning() {
   try {
-    const out = process.platform === 'win32'
-      ? execSync('tasklist /FI "IMAGENAME eq Obsidian.exe" /NH', { encoding: 'utf8' })
-      : execSync('pgrep -i obsidian || true', { encoding: 'utf8' });
-    return /obsidian/i.test(out);
-  } catch { return false; }
+    if (process.platform === 'win32') {
+      // An isolated test profile must not prevent launching the normal profile.
+      // Ignore Electron helpers and explicit --user-data-dir instances.
+      const script = "Get-CimInstance Win32_Process -Filter \"name = 'Obsidian.exe'\" | Where-Object { $_.CommandLine -and $_.CommandLine -notmatch '--type=|--user-data-dir' } | Select-Object -ExpandProperty ProcessId";
+      const out = execFileSync('powershell.exe', ['-NoProfile','-Command',script], { encoding: 'utf8', windowsHide: true });
+      return /\d/.test(out);
+    }
+    return /obsidian/i.test(execSync('pgrep -i obsidian || true', { encoding: 'utf8' }));
+  } catch { return true; } // Unknown state: do not terminate or replace a running app.
 }
 
 async function portOpen() {
@@ -163,7 +167,8 @@ export async function ensureAdvancedCanvas(page, vaultRoot) {
 export async function openCanvas(page, relPath) {
   const vaultRoot = await page.evaluate(() => app.vault.adapter.basePath);
   const data = JSON.parse(fs.readFileSync(path.join(vaultRoot, relPath), 'utf8').replace(/^\uFEFF/, ''));
-  if ((data.edges ?? []).some(e => e.canvasIO?.version === 1)) {
+  const companionActive = await page.evaluate(() => !!app.plugins.plugins['canvas-io']);
+  if ((data.edges ?? []).some(e => e.canvasIO?.version === 1) || companionActive) {
     const { ensureCanvasIO } = await import('./canvas-io.mjs');
     await ensureCanvasIO(page, vaultRoot);
   }

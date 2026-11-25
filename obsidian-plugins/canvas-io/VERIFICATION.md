@@ -1,5 +1,7 @@
 # Prototype verification
 
+Canvas IO 0.2.0 card-mode update: build and all nine unit tests pass on Obsidian 1.15.1. The 20 existing native interaction checks pass with Advanced Canvas, and all 16 new native card/menu checks pass. The actual creation menu, ordinary/I/O cards, conversions and Shopify legend were visually inspected. All 18 legacy Shopify legend cards displayed without I/O overlays. Temporary fixture files and review screenshots were removed after verification.
+
 Verified November 25, 2026 on Windows, Obsidian **1.15.1**, Node.js **24.16.0**, and Advanced Canvas **7.1.0**.
 
 `npm run build` passed TypeScript checking and produced the plugin bundle. All **6 geometry/persistence unit tests** passed.

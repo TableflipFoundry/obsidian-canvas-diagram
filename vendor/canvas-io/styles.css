@@ -20,7 +20,8 @@
 .canvas-io-preview { fill: none; stroke: var(--color-orange, #e99b48); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
 .canvas-io-edge-ends .canvas-path-end { pointer-events: all; cursor: grab; }
 /* Native hover handles live in Canvas's separate selection/resize layer. */
-.canvas-io-active .canvas-node-connection-point {
+.canvas-io-hide-native .canvas-node-connection-point,
+.canvas-io-node .canvas-node-connection-point {
   display: none !important;
   pointer-events: none !important;
 }

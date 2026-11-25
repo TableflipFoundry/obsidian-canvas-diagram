@@ -213,6 +213,8 @@ Severity: **high** (wrong prices or data, money, security, a feature users rely 
 
 New diagrams use the bundled Canvas IO desktop companion: Output-to-Input ports on each side, with separate return lanes where code proves a return. Read [I/O ports](references/io-ports.md) when creating or converting a diagram. Existing saved diagrams retain their edge mode and placement; `pipeline.mjs <canvas> --io` explicitly converts without reflow. The native tools install the bundled companion for I/O diagrams. Requires Obsidian desktop 1.15.1+.
 
+I/O is a card mode, not a replacement for every native card. Markdown-backed cards default to I/O. Ordinary text, media and web cards retain the original four ports. The background menu adds **Add I/O card**, and card menus offer **Use I/O card / Use standard card**. Explicit choices are saved as `canvasIO.ports: true/false`. Generated legend cards are standard, including legacy `legend-` cards without metadata. Keep their native examples readable; do not add I/O overlays to legend samples.
+
 ## The .canvas file
 
 A canvas is JSON with two arrays: `nodes` (boxes) and `edges` (arrows).

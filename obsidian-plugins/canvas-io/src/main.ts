@@ -1,7 +1,8 @@
-import { Notice, Plugin } from 'obsidian';
+import { Menu, Notice, Plugin } from 'obsidian';
 import type { Canvas, Edge, Node } from './canvas';
 import { anchorPoint, connectionData, curve, isIO, KINDS, portPoint, SIDES } from './geometry';
 import type { Kind, Point, Side } from './geometry';
+import {cardAnchor,isIOCard} from './cards';
 
 type Port = { node: Node; side: Side; kind: Kind };
 type Gesture = { canvas: Canvas; fixed: Port; edge?: Edge; moving: Kind; preview: SVGPathElement; doc: Document };
@@ -16,12 +17,19 @@ export default class CanvasIO extends Plugin {
   private ports = new WeakMap<Element, Port>();
   private restorers = new Map<object, (() => void)[]>();
   private gesture?: Gesture;
+  private targets=new Map<Canvas,Node|null>();
 
   onload() {
     this.registerEvent(this.app.workspace.on('layout-change', () => this.scan()));
     this.app.workspace.onLayoutReady(() => this.scan());
     this.registerInterval(window.setInterval(() => this.scan(), 250));
     this.addCommand({ id: 'cancel-connection', name: 'Cancel port connection', callback: () => this.cancel() });
+    this.registerEvent(this.app.workspace.on('canvas:node-menu' as never, ((menu:Menu,node:Node)=>{
+      if(!node?.canvas||node.getData().type==='group'||node.id.startsWith('legend-'))return;
+      const io=this.wantsIO(node);
+      menu.addItem(item=>item.setTitle(io?'Use standard card':'Use I/O card').setIcon('git-compare-arrows')
+        .setDisabled(node.canvas.readonly).onClick(()=>this.setCardMode(node,!io)));
+    }) as never));
   }
 
   onunload() {
@@ -29,6 +37,7 @@ export default class CanvasIO extends Plugin {
     for (const object of [...this.restorers.keys()]) this.restore(object);
     for (const [node, layer] of this.nodes) { layer.remove(); node.nodeEl.classList.remove('canvas-io-node'); }
     for (const canvas of this.canvases) canvas.wrapperEl.classList.remove('canvas-io-active');
+    for(const canvas of this.canvases)canvas.nodeInteractionLayer.interactionEl.classList.remove('canvas-io-hide-native');
     // Restore native geometry immediately when disabling the plugin.
     for (const edge of this.edges) if (edge.canvas.edges.get(edge.id) === edge) edge.render();
   }
@@ -62,6 +71,15 @@ export default class CanvasIO extends Plugin {
       if (!this.canvases.has(canvas)) {
         this.canvases.add(canvas);
         canvas.wrapperEl.classList.add('canvas-io-active');
+        this.wrap(canvas,'showCreationMenu',original=>(menu,point,size)=>{
+          original.call(canvas,menu,point,size);
+          menu.addItem(item=>item.setTitle('Add I/O card').setSection('create').setIcon('git-compare-arrows')
+            .setDisabled(canvas.readonly).onClick(()=>this.addIOCard(canvas,point)));
+        });
+        const layer=canvas.nodeInteractionLayer;
+        this.wrap(layer,'setTarget',original=>node=>{
+          original.call(layer,node);this.targets.set(canvas,node);this.syncNativeHandles(canvas);
+        });
         const capture = (event: PointerEvent) => {
           if (event.button !== 0 || canvas.readonly) return;
           const port = this.portAt(event, canvas);
@@ -76,6 +94,7 @@ export default class CanvasIO extends Plugin {
       }
       for (const node of canvas.nodes.values()) this.mountNode(node);
       for (const edge of canvas.edges.values()) this.mountEdge(edge);
+      this.syncNativeHandles(canvas);
     }
     for (const [node, layer] of this.nodes) {
       if (!active.has(node.canvas) || node.canvas.nodes.get(node.id) !== node) {
@@ -89,6 +108,10 @@ export default class CanvasIO extends Plugin {
       this.restore(edge); this.edges.delete(edge);
     }
     for (const canvas of this.canvases) if (!active.has(canvas)) {
+      this.restore(canvas.nodeInteractionLayer);this.targets.delete(canvas);
+      canvas.nodeInteractionLayer.interactionEl.classList.remove('canvas-io-hide-native');
+      this.restore(canvas.nodeInteractionLayer);this.targets.delete(canvas);
+      canvas.nodeInteractionLayer.interactionEl.classList.remove('canvas-io-hide-native');
       this.restore(canvas); canvas.wrapperEl.classList.remove('canvas-io-active'); this.canvases.delete(canvas);
     }
     if (this.gesture && (!active.has(this.gesture.canvas) || this.gesture.canvas.readonly ||
@@ -96,7 +119,12 @@ export default class CanvasIO extends Plugin {
   }
 
   private mountNode(node: Node) {
-    if (!node.nodeEl || node.getData().type === 'group' || node.getData().canvasIO?.ports === false) return;
+    if (!node.nodeEl) return;
+    if(!this.wantsIO(node)){
+      this.nodes.get(node)?.remove();node.nodeEl.classList.remove('canvas-io-node');
+      if(this.nodes.delete(node))this.restore(node);
+      return;
+    }
     const existing = this.nodes.get(node);
     if (existing) {
       if (existing.parentElement !== node.nodeEl) node.nodeEl.append(existing);
@@ -138,6 +166,34 @@ export default class CanvasIO extends Plugin {
     this.wrap(node, 'onConnectionPointerdown', () => () => {});
     this.wrap(node, 'render', original => () => { original.call(node); this.mountNode(node); });
     this.positionPorts(node, layer);
+  }
+
+  private wantsIO(node:Node) {
+    const legacy=[...node.canvas.edges.values()].some(edge=>isIO(edge.getData())&&(edge.from.node===node||edge.to.node===node));
+    return isIOCard({...node.getData(),id:node.id},legacy);
+  }
+
+  private syncNativeHandles(canvas:Canvas) {
+    const target=this.targets.get(canvas)??canvas.nodeInteractionLayer.target;
+    canvas.nodeInteractionLayer.interactionEl.classList.toggle('canvas-io-hide-native',!!target&&this.wantsIO(target));
+  }
+
+  private setCardMode(node:Node,io:boolean) {
+    const canvas=node.canvas;if(canvas.readonly)return;
+    canvas.requestPushHistory?.run?.();
+    this.cancel();
+    const data=node.getData();node.setData({...data,canvasIO:{...data.canvasIO,ports:io}});
+    this.mountNode(node);this.syncNativeHandles(canvas);
+    for(const edge of canvas.edges.values())if(edge.from.node===node||edge.to.node===node)edge.render();
+    canvas.requestPushHistory?.cancel?.();canvas.pushHistory(canvas.getData());canvas.view.requestSave();
+  }
+
+  private addIOCard(canvas:Canvas,point:Point) {
+    if(canvas.readonly)return;
+    canvas.requestPushHistory?.run?.();
+    const node=canvas.createTextNode({pos:point,size:{width:320,height:200},text:'',focus:false});
+    const data=node.getData();node.setData({...data,canvasIO:{...data.canvasIO,ports:true}});
+    this.mountNode(node);canvas.requestPushHistory?.cancel?.();canvas.pushHistory(canvas.getData());canvas.view.requestSave();
   }
 
   private positionPorts(node: Node, layer: HTMLElement) {
@@ -186,8 +242,8 @@ export default class CanvasIO extends Plugin {
       event.preventDefault(); event.stopPropagation();
       if (edge.canvas.readonly) return;
       const point = edge.canvas.posFromClient({ x: event.clientX, y: event.clientY });
-      const from = anchorPoint(edge.from.node.getBBox(), edge.from.side, 'output');
-      const to = anchorPoint(edge.to.node.getBBox(), edge.to.side, 'input');
+      const from = this.endPoint(edge.from.node,edge.from.side,'output');
+      const to = this.endPoint(edge.to.node,edge.to.side,'input');
       const movingFrom = Math.hypot(point.x - from.x, point.y - from.y) < Math.hypot(point.x - to.x, point.y - to.y);
       this.begin(movingFrom ? { node: edge.to.node, side: edge.to.side, kind: 'input' } :
         { node: edge.from.node, side: edge.from.side, kind: 'output' }, edge);
@@ -213,9 +269,11 @@ export default class CanvasIO extends Plugin {
   }
 
   private edgeGeometry(edge: Edge) {
-    return curve(anchorPoint(edge.from.node.getBBox(), edge.from.side, 'output'), edge.from.side,
-      anchorPoint(edge.to.node.getBBox(), edge.to.side, 'input'), edge.to.side);
+    return curve(this.endPoint(edge.from.node,edge.from.side,'output'), edge.from.side,
+      this.endPoint(edge.to.node,edge.to.side,'input'), edge.to.side);
   }
+
+  private endPoint(node:Node,side:Side,kind:Kind){return cardAnchor(node.getBBox(),side,kind,this.wantsIO(node));}
 
   private begin(fixed: Port, edge?: Edge) {
     this.cancel();

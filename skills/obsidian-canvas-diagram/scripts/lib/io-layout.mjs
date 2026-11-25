@@ -1,5 +1,6 @@
 // Final, deterministic I/O pass. Changes attachments/label offsets, never cards or meaning.
 import {anchorPoint,curve,isIO,SIDES,NORMAL} from '../../../../vendor/canvas-io/geometry.mjs';
+import {cardAnchor,isIOCard} from '../../../../vendor/canvas-io/cards.mjs';
 
 const inside=(p,b,pad=0)=>p.x>b.x-pad&&p.x<b.x+b.width+pad&&p.y>b.y-pad&&p.y<b.y+b.height+pad;
 const overlaps=(a,b)=>a.x<b.x+b.width&&a.x+a.width>b.x&&a.y<b.y+b.height&&a.y+a.height>b.y;
@@ -40,8 +41,9 @@ export function refineIO(input,plan={}) {
     edge.fromSide??='right';edge.toSide??='left';
   }
   function geometry(edge) {
-    const g=curve(anchorPoint(bbox(nodes.get(edge.fromNode)),edge.fromSide,'output'),edge.fromSide,
-      anchorPoint(bbox(nodes.get(edge.toNode)),edge.toSide,'input'),edge.toSide);
+    const source=nodes.get(edge.fromNode),target=nodes.get(edge.toNode);
+    const g=curve(cardAnchor(bbox(source),edge.fromSide,'output',isIOCard(source,true)),edge.fromSide,
+      cardAnchor(bbox(target),edge.toSide,'input',isIOCard(target,true)),edge.toSide);
     const points=Array.from({length:49},(_,i)=>at(g,i/48));
     return{g,points,bounds:rect(points),length:points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0)};
   }

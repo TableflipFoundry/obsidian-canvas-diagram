@@ -10,7 +10,7 @@ The **diagram-generation plugin** runs with the agent. It reads code, writes exp
 
 ## What I and O mean
 
-Each card has exactly two ports per side, eight total. Input receives a connection; Output sends one. Opposite sides have mirrored positions:
+There are two card modes. Standard cards keep Obsidian's four original connection points. An **I/O card** has exactly two ports per side, eight total. Input receives a connection; Output sends one. Opposite sides have mirrored positions:
 
 ```text
                I     O
@@ -24,6 +24,10 @@ Each card has exactly two ports per side, eight total. Input receives a connecti
 When one card is directly to the right of another, the first card's right Output aligns with the second card's left Input. The return uses the other lane. The same holds for cards directly above and below each other.
 
 Ports are generic I/O roles, not separate named ports for each function. Several edges can use one port. This still requires careful placement around busy nodes. Positions are fixed in this version.
+
+Right-click empty Canvas space and select **Add I/O card** to create one. **Add card** still creates an ordinary card. A card's context menu offers **Use I/O card** or **Use standard card** to switch it. Markdown-backed cards default to I/O; other unmarked cards default to standard. Existing hand-drawn I/O cards remain compatible through their saved connections. Generated legend cards always remain standard, including legends made before this update.
+
+Mode choices are saved as `canvasIO: { "ports": true }` or `canvasIO: { "ports": false }` on the card. Undo, redo and reopening preserve them. Switching modes does not delete or reverse connections; I/O connections attach at each endpoint's selected card mode. Standard cards retain native center connectors, while those connectors are hidden only when an I/O card is targeted.
 
 Orange port rings mean Output; cyan rings mean Input. They do not redefine the legend's edge colors or timing patterns.
 

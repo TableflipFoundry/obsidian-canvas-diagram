@@ -7,7 +7,7 @@
 // Scores the same problems as score.mjs, plus flow and compactness terms.
 // Group nodes are not supported yet (they are ignored and keep their position).
 import fs from 'node:fs';
-import { anchorPoint, isIO } from './lib/canvas-io.mjs';
+import { cardAnchor, isIOCard, isIO } from './lib/canvas-io.mjs';
 
 const [inPath, outPath, itersArg = '60000', seedArg = '1'] = process.argv.slice(2);
 const canvas = JSON.parse(fs.readFileSync(inPath, 'utf8').replace(/^\uFEFF/, ''));
@@ -116,7 +116,7 @@ function anchor(i, side, off) {
 }
 function edgePoints(k) {
   const io = isIO(edges[k]);
-  const port = (i,side,kind) => { const p = anchorPoint({minX:X[i],minY:Y[i],maxX:X[i]+Wd[i],maxY:Y[i]+Ht[i]},side,kind); return [p.x,p.y]; };
+  const port = (i,side,kind) => { const p = cardAnchor({minX:X[i],minY:Y[i],maxX:X[i]+Wd[i],maxY:Y[i]+Ht[i]},side,kind,isIOCard(nodes[i],true)); return [p.x,p.y]; };
   const p0 = io ? port(EF[k],FS[k],'output') : anchor(EF[k],FS[k],7);
   const p3 = io ? port(ET[k],TS[k],'input') : anchor(ET[k],TS[k],7);
   const dist = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]);

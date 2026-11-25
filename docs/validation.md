@@ -1,12 +1,12 @@
 # Validation
 
-Tested on Windows with Node.js 24.16.0 and Obsidian desktop 1.15.1, using Advanced Canvas 7.1.0 and Canvas IO 0.1.1. The complete developer workflow requires Node.js 22.18+ because companion unit tests import TypeScript source with native type stripping.
+Tested on Windows with Node.js 24.16.0 and Obsidian desktop 1.15.1, using Advanced Canvas 7.1.0 and Canvas IO 0.2.0. The complete developer workflow requires Node.js 22.18+ because companion unit tests import TypeScript source with native type stripping.
 
 ## Automated checks
 
 From the repository root, run `npm run setup`, `npm test`, and `npm run build`.
 
-The November 25, 2026 verification passed **22 diagram-tool tests and 6 companion tests**, plus the companion TypeScript build and bundle generation. The three opt-in native layout scenarios also passed and were inspected in Obsidian.
+The original 0.6.0 verification passed 22 diagram-tool tests and 6 companion tests, plus the build and three opt-in native layout scenarios. The 0.6.1 card-mode update passes **22 diagram-tool tests and 9 companion tests**, the build, all 20 existing native interaction checks, and 16 new card/menu checks. The Shopify legend was inspected with all 18 legend cards free of I/O overlays.
 
 The diagram-tool suite covers real pipeline generation/reruns, semantic main paths, nearby helpers, sibling rows, shared data-reference preservation, explicit conversion, ordinary-edge compatibility, offline bundle installation, newer-install preservation and native quality gates. I/O regressions cover backward-facing curls with an intervening helper, separate request/response labels, attachment pins, fixed card positions, one-store identity and metadata/style preservation. Note tests exercise real YAML semantics and colon-containing titles. Review-evidence tests reject missing/stale closeups or a review recorded before the images.
 
@@ -31,3 +31,7 @@ These scenarios passed and their rendered screenshots were visually inspected on
 From `obsidian-plugins/canvas-io`, use the same `OBSIDIAN_VAULT` variable and run `node scripts/verify-native.mjs`. Add `--without-advanced` to temporarily test native Canvas alone. The 20 checks cover actual mouse dragging, mirrored return lanes, invalid connections, keyboard activation, cancellation, undo/redo, movement, resizing, read-only mode, save/reopen, disable/enable, target reconnection and ordinary edges. The original companion was checked both with and without Advanced Canvas; its later label-placement update was checked with Advanced Canvas and used in the Pawnshop review.
 
 No mobile, future Obsidian version, alternate renderer, or universal crossing-free claim is made. The final pass is a bounded heuristic using fixed cards and cubic paths. Difficult hubs can still need author adjustments. Native review and truthful limitation reporting remain required.
+
+## Standard and I/O card checks
+
+`node scripts/verify-cards.mjs` in the companion directory exercises the actual background and node menus. It verifies ordinary-card creation, I/O-card creation as one undo operation, Markdown defaults, legacy legends without migration, per-target native connector visibility, mode conversion, undo/redo, mixed-mode endpoints and save/reopen. It removes its temporary cards/notes afterward. Optional screenshots are review artifacts to remove after inspection.

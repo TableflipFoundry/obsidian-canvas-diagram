@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 export { anchorPoint, isIO } from '../../../../vendor/canvas-io/geometry.mjs';
+export {cardAnchor,isIOCard} from '../../../../vendor/canvas-io/cards.mjs';
 export const bundle = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../vendor/canvas-io');
 const files = ['main.js','manifest.json','styles.css'];
 

@@ -2,9 +2,9 @@
 
 Generate documented, interactive diagrams from code or a proposed design. Each card links to a Markdown note explaining what the component does, why it exists, and how it interacts with the system. Notes are shared across diagrams.
 
-The package includes **Canvas IO**, an Obsidian desktop companion with Input and Output ports on all four sides of each card. Requests, responses, reads and writes can use distinct, persistent attachment points.
+The package includes **Canvas IO**, an Obsidian desktop companion with two card modes. Standard cards retain Obsidian's four ports. I/O cards have Input and Output ports on all four sides, so requests, responses, reads and writes can use distinct, persistent attachment points.
 
-Start with [How it works](docs/how-it-works.md) for the plain-language explanation of ports, arrows, layout and review. See [release notes](CHANGELOG.md) for version 0.6.0.
+Start with [How it works](docs/how-it-works.md) for the plain-language explanation of ports, arrows, layout and review. See [release notes](CHANGELOG.md) for version 0.6.1.
 
 ## Commands
 
@@ -18,7 +18,7 @@ Ordinary diagram requests can also invoke the skill. Scope, detail and preferenc
 
 Each project has an Obsidian vault in `Diagrams/`. Shared notes live in `Diagrams/nodes/`. Each diagram has its own folder containing the `.canvas`, a semantic `.layout.json` plan and an issues note when code findings exist.
 
-Drag an orange **O** port to a cyan **I** port. Click-to-connect and keyboard activation also work. Arrows always run Output to Input. Return edges are added when source evidence and the requested detail support them. Fixed mirrored positions give facing cards separate request/response lanes. Existing ordinary edges retain native attachments; original center hover connectors are disabled on I/O cards, while resize handles remain available.
+Right-click blank Canvas space for **Add card** (standard) or **Add I/O card**. Right-click a card for **Use I/O card / Use standard card**. Markdown notes default to I/O; legends and ordinary text cards stay standard. In an I/O card, drag an orange **O** to a cyan **I**. Click and keyboard activation also work. Fixed mirrored positions give facing cards separate request/response lanes. Existing ordinary edges retain native attachments. Center hover connectors are disabled only on I/O cards; standard cards keep their four native connection points and resize handles remain available.
 
 The generated legend describes card roles, what travels, and timing. Card colors: screens pink, components cyan, data yellow, functions green, decisions orange, events red, people blue and outside systems purple. Edge colors: cyan data, purple external, red error, neutral calls. Patterns: solid now, long dashes deferred, dots scheduled, short dashes planned. Port colors identify I/O roles independently.
 
