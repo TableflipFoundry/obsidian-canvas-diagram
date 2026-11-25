@@ -58,6 +58,8 @@ If you can't ask (AskUserQuestion isn't available, or you're running without a p
 
 ## 3. Build
 
+Read [Relationship audit](../skills/obsidian-canvas-diagram/references/relationship-audit.md). Trace each subject's callers, calls, reads, writes, returns and consumers independently of the proposed drawing. Include initial loading, returned state and cross-feature consumers as well as mutations. Separate render ownership, callback invocation and direct calls; do not route a page's data loading through its child form without code evidence. Save `<diagram>.relationships.json`; after reconciling every node and edge, run `audit.mjs <canvas> <inventory>`. This source-backed check is required separately from native screenshots and the visual-review attestation.
+
 First, create `Diagrams/` and `Diagrams/nodes/` if they don't exist (SKILL.md, "Vault layout"). Then **start the job** and **run the reuse check** (SKILL.md, "The diagram job (stop check)").
 
 1. **Read the code** for every box in it. Explorer findings tell you *where* things are. Before writing a note, open at least the box's main `source` file yourself, plus whatever you need to back each claim (who calls it, what it reads and writes). Every sentence in a note must come from code you or an explorer actually read, with the file path known.

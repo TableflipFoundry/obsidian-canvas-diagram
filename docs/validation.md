@@ -4,7 +4,11 @@ Tested on Windows with Node.js 24.16.0 and Obsidian desktop 1.15.1, using Advanc
 
 ## Automated checks
 
+The 0.6.2 relationship-audit regressions exercise the real job/audit CLI and stop-check integration. A visual attestation without the inventory remains blocked. Tests reject missing return edges without omission reasons, uncovered consumers/nodes/edges, empty unreviewed facets, mismatched direction/endpoints, invalid source citations and stale source/graph evidence. Explicit presentation-only jobs reject semantic edits and disclose their limited scope; code jobs cannot substitute proposed-design rationale. These checks enforce authored evidence and coverage, not automatic discovery of all runtime relationships. This update changes the agent workflow and job gate; the previously verified Obsidian companion/rendering runtime is unchanged.
+
 From the repository root, run `npm run setup`, `npm test`, and `npm run build`.
+
+The 0.6.2 suite passes **28 diagram-tool tests and 9 companion tests (37 total)**. The six relationship-audit tests include real CLI/stop-check integration. Skill metadata and references pass the skill validator.
 
 The original 0.6.0 verification passed 22 diagram-tool tests and 6 companion tests, plus the build and three opt-in native layout scenarios. The 0.6.1 card-mode update passes **22 diagram-tool tests and 9 companion tests**, the build, all 20 existing native interaction checks, and 16 new card/menu checks. The Shopify legend was inspected with all 18 legend cards free of I/O overlays.
 

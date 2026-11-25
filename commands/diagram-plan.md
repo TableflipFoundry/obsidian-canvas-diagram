@@ -50,6 +50,8 @@ Point out any choices you made for them ("I've assumed sales are saved before th
 
 ## 4. Build
 
+Start proposed-design jobs with `job.mjs start <canvas> --design`. Use [Relationship audit](../skills/obsidian-canvas-diagram/references/relationship-audit.md) to inventory intended callers, calls, reads, writes, returns and consumers, especially data loading and state delivery. Record a `mode: design` inventory with explicit rationale, cite source for any existing-code claims, and run `audit.mjs <canvas> <inventory>`. A design is not a verified account of existing runtime behavior.
+
 Same as `/diagram-review` step 3: start the job and run the reuse check, write the notes, canvas and semantic `.layout.json` plan, then run the pipeline and finish the relationship-first visual pass. Main paths stay straight, helpers sit beside their callers, and shared data uses local references when long wires obscure the story. Inspect the whole diagram and readable close-ups, fix, verify, and record `job.mjs reviewed ... --relationships` (SKILL.md, "Layout and review"). A plan has no code to review, so if there are no open problems to list, run `job.mjs no-issues`; put open questions in the report.
 
 Pick the diagram type that fits (SKILL.md, "Diagram type selection"). For a new feature that is usually an architecture diagram. If the user mainly cares about one flow ("what happens when…"), use a sequence diagram instead.

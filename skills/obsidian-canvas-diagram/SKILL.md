@@ -17,11 +17,16 @@ You decide the **meaning**: which notes exist, what they say, how they connect, 
 
 ## The shared workflow
 
+**Audit meaning separately from appearance.** For a new diagram of existing code or a content refresh, read [Relationship audit](references/relationship-audit.md) before choosing arrows. Trace callers, calls, reads, writes, returns and all relevant consumers from source; initial loading and returned state must not disappear behind a write-only call chain. Save `<diagram>.relationships.json` and record it with `audit.mjs <canvas> <inventory>`. New jobs block on missing coverage/evidence even after a successful visual review. The gate validates the authored evidence inventory; it does not automatically discover or prove every relationship.
+
+Use `job.mjs start <canvas> --presentation` only for an explicitly presentation-only request. It preserves the semantic graph and reports **relationships preserved, not code-audited**; never imply a port conversion validates completeness. Use `--design` only for a proposed design, with rationale clearly separated from verified behavior. Default `start` requires source-backed code evidence.
+
 Every command ends the same way:
 
 0. **Start the job and run the reuse check** before writing anything. See "The diagram job (stop check)".
 1. **Write the notes** (one markdown file per box). See "Node notes".
 2. **Write the canvas and semantic layout plan**: boxes that point at notes, arrows, main paths and nearby helpers. See "The .canvas file" and [Relationship-first layout](references/relationship-layout.md).
+   Before layout, reconcile the source inventory with every subject and edge. Draw meaningful in-scope return/read/consumer paths; explain deliberate omissions and preserve their evidence in the inventory. Run `audit.mjs <canvas> <diagram.relationships.json>` after the final semantic edits.
 3. **Run the layout pipeline** on each canvas. See "Layout and review".
 4. **Review** the score and the screenshot. Fix problems by changing structure, then run the pipeline again.
 5. **Report** to the user. See "Finishing up".
@@ -441,6 +446,7 @@ This plugin has a **stop check**. While a diagram job is running, you can't fini
 
 1. **Start the job** once you know the canvas path, before writing notes:
    `node "<scripts>/job.mjs" start "<path/to/diagram.canvas>"`
+   New jobs use review version 4 and require the relationship inventory independently of screenshots. For explicit visual-only changes add `--presentation`; for proposed systems add `--design`. Read the Relationship audit reference for the schema and record the inventory with `node "<scripts>/audit.mjs" "<canvas>" "<diagram.relationships.json>"`. Keep it as final documentation. A visual review, `no-issues`, or a clean score cannot satisfy this check.
 2. **Run the reuse check** (next section): `node "<scripts>/notes-index.mjs" "<path/to/Diagrams>" [words]`
 3. Write the notes, issues note and canvas, then run the pipeline.
 4. **Look at the overview and every readable section** (run `closeups.mjs <canvas> <review-folder>`), then **record your review** in a sentence or two (flow, arrows, labels, level: what you saw and changed):
@@ -488,6 +494,8 @@ Before editing an existing note, check whether *other* canvases in the vault poi
 **Forking:** write a new note (for example `login-handler-v2.md`) with the changes, and point only the current diagram at it.
 
 ## Finishing up
+
+State whether semantic relationships were **source-audited**, **proposed**, or **preserved without a code audit**. Report deliberate omissions and unresolved coverage; do not call a visually clean diagram complete against code without the inventory and source review. Existing-code audits retain their source/evidence limits; never promise automatic semantic completeness.
 
 Report briefly, in plain language:
 

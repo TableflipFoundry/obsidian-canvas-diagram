@@ -1,5 +1,5 @@
 // Usage:
-//   node job.mjs start    <path/to/diagram.canvas>   begin a diagram job (turns on the stop check)
+//   node job.mjs start    <path/to/diagram.canvas> [--presentation|--design]
 //   node job.mjs reviewed <canvas> "<what you checked in the screenshot and what you found>"
 //   node job.mjs no-issues <canvas>                  record that the review found no problems
 //   node job.mjs skip     <canvas> <check-id> "<why it can't be fixed>"
@@ -9,11 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readJob, writeJob, updateJob, locateVault, markerPath } from './lib/job.mjs';
+import { relationshipHash } from './lib/relationship-audit.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 const [cmd, canvasArg, ...rest] = process.argv.slice(2);
-const usage = () => { console.error('usage: node job.mjs start|reviewed|no-issues|skip|status|cancel <diagram.canvas> [...]'); process.exit(2); };
+const usage = () => { console.error('usage: node job.mjs start|reviewed|no-issues|skip|status|cancel <diagram.canvas> [...]\nstart defaults to source-backed code review; --presentation preserves semantics without a code audit; --design records an explicit proposal.'); process.exit(2); };
 if (!cmd || !canvasArg) usage();
 
 const canvas = path.resolve(canvasArg);
@@ -26,18 +27,29 @@ if (!vault) {
 }
 
 if (cmd === 'start') {
+  const mode = rest.includes('--presentation') ? 'presentation' : rest.includes('--design') ? 'design' : 'code';
+  if (rest.some(flag => !['--presentation','--design'].includes(flag)) || rest.length > 1) usage();
+  let relationshipBaseline = null;
+  if (mode === 'presentation') {
+    try { relationshipBaseline = relationshipHash(JSON.parse(fs.readFileSync(canvas,'utf8').replace(/^\uFEFF/,''))); }
+    catch { console.error('Presentation-only mode requires an existing valid canvas.');process.exit(1); }
+  }
   writeJob(vault, {
     canvas: path.relative(vault, canvas).split(path.sep).join('/'),
     startedAt: new Date().toISOString(),
-    notesIndexAt: null, layout: null, review: null, reviewVersion: 3, noIssues: false, skips: {}, history: [],
+    notesIndexAt: null, layout: null, review: null, reviewVersion: 4, mode, relationshipBaseline,
+    relationshipAudit: null, noIssues: false, skips: {}, history: [],
   });
   console.log(`Diagram job started for ${path.relative(vault, canvas)}. The stop check is on until every check passes.`);
   console.log(`Next, the reuse check: node "${path.join(here, 'notes-index.mjs')}" "${vault}"`);
+  if (mode === 'presentation') console.log('Presentation-only: semantic relationships must remain unchanged. Code completeness is NOT audited; disclose this in the final report.');
+  else console.log('A relationship inventory is required before completion: read references/relationship-audit.md, then run audit.mjs <canvas> <inventory>.');
   process.exit(0);
 }
 
 const job = readJob(vault);
 if (!job) { console.error(`No diagram job is running in ${vault}. Start one with: node job.mjs start <canvas>`); process.exit(1); }
+if (path.resolve(vault,job.canvas) !== canvas) { console.error('The active job is for a different canvas.');process.exit(1); }
 
 if (cmd === 'reviewed') {
   const relationshipsChecked = rest.includes('--relationships');
@@ -62,6 +74,7 @@ if (cmd === 'reviewed') {
   const { runChecks } = await import('./check.mjs');
   const r = runChecks(vault, job);
   console.log(r.failures.length ? 'Not done yet:\n' + r.failures.map(f => `- [${f.id}] ${f.msg}`).join('\n') : 'All checks pass.');
+  if (job.mode === 'presentation') console.log('Relationship completeness: NOT CODE-AUDITED (presentation-only, semantic graph preserved). Do not describe this as a code/content validation.');
   if (Object.keys(job.skips).length) console.log('Couldn\'t fix (recorded):\n' + Object.entries(job.skips).map(([k, v]) => `- ${k}: ${v}`).join('\n'));
 } else if (cmd === 'cancel') {
   fs.rmSync(markerPath(vault), { force: true });

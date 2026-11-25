@@ -16,6 +16,7 @@ import { readJob, writeJob, markerPath, fileHash } from './lib/job.mjs';
 import { legendProblems, isLegendItem } from './lib/legend.mjs';
 import { renderProblems, reviewEvidenceProblems } from './lib/render-quality.mjs';
 import { parseNote } from './lib/notes.mjs';
+import { relationshipAuditProblems } from './lib/relationship-audit.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SECTIONS = {
@@ -74,6 +75,7 @@ export function runChecks(vault, job) {
   if (!job.notesIndexAt) fail('reuse-check', `The reuse check hasn't run. Run: node "${path.join(here, 'notes-index.mjs')}" "${vault}" and reuse matching notes before writing new ones.`);
 
   const fileNodes = (canvas.nodes ?? []).filter(n => n.type === 'file');
+  for (const p of relationshipAuditProblems(vault,job,canvas)) fail(p.id,p.msg);
   for (const n of fileNodes) if (!fs.existsSync(path.join(vault, n.file ?? ''))) fail(`missing-note:${n.file}`, `Box ${n.id} points at ${n.file}, which doesn't exist. Write that note, or fix the path (relative to ${vault}).`);
 
   // layout must have run on the current version of the canvas, and been checked in Obsidian
@@ -160,6 +162,7 @@ if (isMain) {
 
   if (!failures.length) {
     fs.rmSync(markerPath(vault), { force: true });
+    if (job.mode === 'presentation') process.stderr.write('Presentation-only update: relationships were preserved, not audited against code. Disclose this scope in the final report.\n');
     if (skips.length) { process.stderr.write(`All checks pass. Before finishing, make sure your report lists:${tail}`); process.exit(2); }
     process.exit(0);
   }

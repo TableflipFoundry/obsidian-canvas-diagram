@@ -1,6 +1,6 @@
 {
   "name": "obsidian-canvas-diagram",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Generate documented Obsidian diagrams with Input/Output ports, relationship-first layouts, shared notes, and native visual verification.",
   "author": {
     "name": "Tableflip Foundry",

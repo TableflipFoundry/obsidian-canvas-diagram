@@ -19,6 +19,8 @@ If you can't ask questions (no AskUserQuestion tool), list the diagrams and stop
 
 ## 1. Load the diagram
 
+Choose job scope honestly: default `job.mjs start <canvas>` for a code/content refresh, or `start <canvas> --presentation` for an explicitly visual-only edit. Read [Relationship audit](../skills/obsidian-canvas-diagram/references/relationship-audit.md). Content jobs require a source inventory of callers, calls, reads, writes, returns and consumers, including initial loading and state returned to all in-scope UI consumers. Presentation-only jobs preserve the semantic graph and report that completeness was not code-audited; an existing diagram is not automatically trusted as complete.
+
 Start the job on this canvas (SKILL.md, "The diagram job (stop check)"). Open the `.canvas` file and every note it points at. If boxes link to detail diagrams (`detail:`), note them. They may need updating too.
 
 ## 2. Check it against the code
@@ -26,6 +28,8 @@ Start the job on this canvas (SKILL.md, "The diagram job (stop check)"). Open th
 For a requested code/content refresh, run the following drift check if notes have `status: exists` or a `source`. For an explicitly presentation-only request (ports, one edge, labels or layout), preserve content and relationships; read source only if needed to resolve a claimed relationship. Do not turn a small visual correction into an unrequested full audit or a new approval round.
 
 For a code/content refresh:
+
+Reconcile `<diagram>.relationships.json` with the code and graph, not just existing arrows. Inspect apparent sinks/write-only stores and missing return/consumer paths. Record evidence for every drawn relationship or deliberate omission; run `audit.mjs <canvas> <inventory>` after semantic changes. If source is unavailable, disclose the exact unverified relationships rather than treating a visual score as code validation.
 
 1. For each note with a `source`, read the file.
 2. For notes without a `source` that should exist by now, search the codebase for them.

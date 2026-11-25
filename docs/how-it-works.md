@@ -72,6 +72,10 @@ The inventory-to-Routes example exposed another issue: changing the entry from t
 
 ## How the result is checked
 
+Semantic coverage is checked separately from rendering. New existing-code diagrams and content refreshes require a persistent `.relationships.json` inventory covering each subject's callers, calls, reads, writes, returns and consumers. It records exact source excerpts, caller/consumer searches, and every drawn interaction or deliberate omission. Initial loads and returned data must be traced alongside writes. The job gate validates coverage and citations, and invalidates the audit when cited sources or semantic graph change. Port positions and layout changes do not invalidate a semantic audit.
+
+This does not automatically infer or prove all behavior in arbitrary code. The author must investigate honestly and disclose scope, omissions and uncertainty. Explicit visual-only jobs preserve existing relationships and report **not code-audited**; a clean native score cannot certify semantic completeness. Proposed designs use a separate rationale-based inventory and are not labelled runtime verification.
+
 The native scorer opens the Canvas in Obsidian and samples actual SVG paths, visible label rectangles, card bounds and missing-note state. It reports obstructions, overlaps, crossings, label collisions and detached drawings.
 
 An overview shows the main story and long wires. Readable closeups reveal every helper, shared-store connection, branch and label. New nontrivial diagram jobs require closeup evidence tied to the saved Canvas hash, then a recorded relationship review. Changing the diagram invalidates that evidence. A score of zero does not replace this inspection.

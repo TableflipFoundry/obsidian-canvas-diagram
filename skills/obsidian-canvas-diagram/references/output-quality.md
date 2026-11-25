@@ -4,6 +4,8 @@ This is the common finishing workflow for plan, review and update commands. It c
 
 ## Establish the story and preserve identity
 
+For new existing-code diagrams or a content refresh, read [Relationship audit](relationship-audit.md) and inventory callers, calls, reads, writes, returns and consumers before layout. Reconcile the graph with initial-load paths and data delivery, including every in-scope UI/service consumer. A chain ending at a persistence write is not a complete account of a feature that also loads those records. Record the source-backed inventory with `audit.mjs`; visual quality and relationship completeness are separate checks. Explicit presentation-only jobs preserve the semantic graph and must report that it was not code-audited.
+
 Use scope, detail and preferences already supplied by the user. Read the relevant entry points, client/server implementations and shared services before asserting relationships. A helper, database or file is part of the diagram because of a real interaction, not because it happens to be in the same folder. Keep unused code visibly distinguished from reachable behavior.
 
 Run the reuse index before creating notes. Write names and a plain-language opening paragraph, followed by the technical sections. Parse frontmatter with YAML and quote titles containing colons. Preserve shared note content during presentation-only changes.
@@ -55,6 +57,8 @@ Look for outward curls and ports pointing away from their destination. Changing 
 Prefer no crossing, then followable return-pair/shared-node crossings, then unrelated crossings. This is a preference, not a hard topology rule. Some layouts cannot be crossing-free. Accept a few clear crossings when they preserve proximity, truthful direction and readable routes; report them. Fix through-card paths, prolonged overlaps, hidden labels, missing notes and detached drawings, or explicitly report the actual unresolved limitation after the bounded repair rounds.
 
 ## Close the job truthfully
+
+For content/code jobs, run `audit.mjs <canvas> <diagram.relationships.json>` after semantic edits. The gate verifies exact source excerpts, all subject/edge coverage, empty-facet reasons, and inventory/graph/source freshness. It cannot discover missed source behavior automatically. A planned-design inventory records rationale instead of claiming verified runtime behavior. Preserve the inventory during artifact cleanup.
 
 Run native verification after the last Canvas edit. The closeup tool records image count and the saved Canvas hash. New nontrivial jobs require that evidence, followed by a recorded review:
 

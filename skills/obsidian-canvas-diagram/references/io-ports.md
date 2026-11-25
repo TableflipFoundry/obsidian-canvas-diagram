@@ -32,6 +32,8 @@ Each subject edge stores `canvasIO: { version: 1, fromPort: "output", toPort: "i
 
 Preserve node names, notes, edge IDs, labels, colors, styles and truthful direction during conversion. I/O describes the connection's direction; it does not prove that a reverse response exists. Add return arrows only when they matter to the requested story and code evidence supports them. Keep a single physical database view when requested by the user; otherwise local references to one note remain available for readability.
 
+Before creating or refreshing semantic content, complete the [relationship audit](relationship-audit.md): trace initial loads, requests, returned records/state and all in-scope consumers. At Detailed/Deep dive, show the meaningful read/return paths; inventory any deliberate aggregation or omission. Existing arrows are not evidence of completeness. A visual-only I/O conversion preserves relationships and explicitly reports that it did not audit code completeness.
+
 ## Layout and visual review
 
 Keep main paths straight and helpers near their callers. Prefer ports facing the destination. An outward curl at a node usually indicates a poorly chosen attachment side. Evaluate the whole curve: a bottom-to-right connection can run directly through a helper sitting between the two nodes. In that case choose a different clear side or, when authorized, adjust the neighborhood.

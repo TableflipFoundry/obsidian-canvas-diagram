@@ -1,5 +1,7 @@
 # Obsidian Canvas Diagram
 
+New code diagrams and content refreshes require a [source-backed relationship inventory](skills/obsidian-canvas-diagram/references/relationship-audit.md), separately from visual checks. It covers calls, reads, writes, returns and consumers so data-loading paths cannot be silently replaced by a one-way mutation chain. The completion gate validates evidence and coverage; it does not automatically prove that every source interaction was discovered. Visual-only updates explicitly report that relationships were preserved without a code audit.
+
 Generate documented, interactive diagrams from code or a proposed design. Each card links to a Markdown note explaining what the component does, why it exists, and how it interacts with the system. Notes are shared across diagrams.
 
 The package includes **Canvas IO**, an Obsidian desktop companion with two card modes. Standard cards retain Obsidian's four ports. I/O cards have Input and Output ports on all four sides, so requests, responses, reads and writes can use distinct, persistent attachment points.
